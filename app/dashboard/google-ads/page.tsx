@@ -6,6 +6,8 @@ import { KPIScorecard } from "./_components/kpi-scorecard";
 import { TrendAnalysisChart } from "./_components/trend-analysis-chart";
 import { QualityScoreMatrix } from "./_components/quality-score-matrix";
 import { SearchTermMining } from "./_components/search-term-mining";
+import { PMaxAssetGroups } from "./_components/pmax-asset-groups";
+import { PMaxListingGroups } from "./_components/pmax-listing-groups";
 import {
   generateDailyMetrics,
   generateCampaigns,
@@ -185,22 +187,33 @@ export default function GoogleAdsDashboard() {
           </div>
         )}
 
+        {/* Performance Max Module */}
+        {!isLoading && (
+          <div className="space-y-6">
+            {/* PMax Asset Groups */}
+            <PMaxAssetGroups data={assetGroups} />
+
+            {/* PMax Listing Groups */}
+            <PMaxListingGroups data={listingGroups} />
+          </div>
+        )}
+
         {/* Placeholder for Future Components */}
         {!isLoading && (
           <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-800 rounded-lg p-8 text-center">
             <div className="text-gray-500 dark:text-gray-400">
               <h3 className="text-lg font-semibold mb-2">
-                Phase 4 & Beyond - Coming Soon
+                Phase 5 & Beyond - Coming Soon
               </h3>
               <p className="text-sm mb-4">
-                The following components are ready for implementation:
+                Completed phases and remaining components:
               </p>
               <ul className="text-sm space-y-1 inline-block text-left">
-                <li>✓ Trend Analysis Chart (Spend vs Conversions)</li>
+                <li>✓ KPI Scorecard & Trend Analysis Chart</li>
                 <li>✓ Quality Score Matrix (Scatter Plot)</li>
                 <li>✓ Search Term Mining (Tree Map)</li>
-                <li>→ Performance Max Asset Groups</li>
-                <li>→ PMax Listing Groups</li>
+                <li>✓ Performance Max Asset Groups</li>
+                <li>✓ PMax Listing Groups</li>
                 <li>→ Video Engagement Funnel</li>
                 <li>→ Audience Demographics</li>
                 <li>→ Geographic Performance Map</li>
