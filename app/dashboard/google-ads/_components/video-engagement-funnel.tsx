@@ -262,7 +262,8 @@ export function VideoEngagementFunnel({ data }: VideoEngagementFunnelProps) {
                   </p>
                 </div>
               </div>
-            )}
+            </div>
+          )}
         </div>
 
         {/* Top Videos by Spend */}
