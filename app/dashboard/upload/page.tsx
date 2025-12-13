@@ -88,7 +88,6 @@ export default function UploadPage() {
         setUploadedFiles((prev) => [uploadedFile, ...prev]);
         toast.success(`${file.name} uploaded successfully`);
       } catch (error) {
-        console.error("Upload error:", error);
         toast.error(`Failed to upload ${file.name}`);
       } finally {
         setUploading(false);

@@ -99,25 +99,19 @@ function SettingsContent() {
           if (ordersResponse.data) {
             setOrders(ordersResponse.data as unknown as OrdersResponse);
           } else {
-            console.log("No orders found or customer not created yet");
             setOrders(null);
           }
         } catch (orderError) {
-          console.log(
-            "Orders fetch failed - customer may not exist in Polar yet:",
-            orderError,
-          );
           setOrders(null);
         }
 
         try {
-          const { data: customerState } = await authClient.customer.state();
-          console.log("customerState", customerState);
+          await authClient.customer.state();
         } catch (customerError) {
-          console.log("Customer state fetch failed:", customerError);
+          // Customer state fetch failed - not critical
         }
       } catch (error) {
-        console.error("Error fetching data:", error);
+        // Error fetching user data
       } finally {
         setLoading(false);
       }
