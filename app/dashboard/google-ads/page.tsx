@@ -8,6 +8,11 @@ import { QualityScoreMatrix } from "./_components/quality-score-matrix";
 import { SearchTermMining } from "./_components/search-term-mining";
 import { PMaxAssetGroups } from "./_components/pmax-asset-groups";
 import { PMaxListingGroups } from "./_components/pmax-listing-groups";
+import { VideoEngagementFunnel } from "./_components/video-engagement-funnel";
+import { GeoPerformanceMap } from "./_components/geo-performance-map";
+import { DaypartingHeatmap } from "./_components/dayparting-heatmap";
+import { RecommendationsFeed } from "./_components/recommendations-feed";
+import { AudienceDemographics } from "./_components/audience-demographics";
 import {
   generateDailyMetrics,
   generateCampaigns,
@@ -198,30 +203,29 @@ export default function GoogleAdsDashboard() {
           </div>
         )}
 
-        {/* Placeholder for Future Components */}
+        {/* Video & Creative Analytics */}
         {!isLoading && (
-          <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-800 rounded-lg p-8 text-center">
-            <div className="text-gray-500 dark:text-gray-400">
-              <h3 className="text-lg font-semibold mb-2">
-                Phase 5 & Beyond - Coming Soon
-              </h3>
-              <p className="text-sm mb-4">
-                Completed phases and remaining components:
-              </p>
-              <ul className="text-sm space-y-1 inline-block text-left">
-                <li>✓ KPI Scorecard & Trend Analysis Chart</li>
-                <li>✓ Quality Score Matrix (Scatter Plot)</li>
-                <li>✓ Search Term Mining (Tree Map)</li>
-                <li>✓ Performance Max Asset Groups</li>
-                <li>✓ PMax Listing Groups</li>
-                <li>→ Video Engagement Funnel</li>
-                <li>→ Audience Demographics</li>
-                <li>→ Geographic Performance Map</li>
-                <li>→ Day-Parting Heatmap</li>
-                <li>→ Recommendations Feed</li>
-              </ul>
-            </div>
-          </div>
+          <VideoEngagementFunnel data={videos} />
+        )}
+
+        {/* Geographic Performance Map */}
+        {!isLoading && (
+          <GeoPerformanceMap data={geoData} />
+        )}
+
+        {/* Day-Parting Heatmap */}
+        {!isLoading && (
+          <DaypartingHeatmap data={hourlyData} />
+        )}
+
+        {/* Audience Demographics */}
+        {!isLoading && (
+          <AudienceDemographics data={demographics} />
+        )}
+
+        {/* Recommendations Feed */}
+        {!isLoading && (
+          <RecommendationsFeed data={recommendations} />
         )}
 
         {isLoading && (
