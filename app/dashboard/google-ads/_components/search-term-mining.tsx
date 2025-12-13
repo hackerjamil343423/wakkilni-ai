@@ -230,19 +230,19 @@ export function SearchTermMining({ data }: SearchTermMiningProps) {
           <div className="flex flex-wrap gap-4">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded" style={{ backgroundColor: "#34a853" }} />
-              <span className="text-gray-600 dark:text-gray-400">ROAS ≥ 3x</span>
+              <span className="text-gray-600 dark:text-gray-400">ROAS &gt;= 3x</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded" style={{ backgroundColor: "#7cb342" }} />
-              <span className="text-gray-600 dark:text-gray-400">ROAS ≥ 2x</span>
+              <span className="text-gray-600 dark:text-gray-400">ROAS &gt;= 2x</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded" style={{ backgroundColor: "#fbbc04" }} />
-              <span className="text-gray-600 dark:text-gray-400">ROAS ≥ 1x</span>
+              <span className="text-gray-600 dark:text-gray-400">ROAS &gt;= 1x</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded" style={{ backgroundColor: "#f57c00" }} />
-              <span className="text-gray-600 dark:text-gray-400">ROAS > 0</span>
+              <span className="text-gray-600 dark:text-gray-400">ROAS &gt; 0</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 rounded" style={{ backgroundColor: "#ea4335" }} />

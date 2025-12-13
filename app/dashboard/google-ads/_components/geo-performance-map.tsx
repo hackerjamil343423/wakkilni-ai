@@ -96,8 +96,8 @@ export function GeoPerformanceMap({ data }: GeoPerformanceMapProps) {
               className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"
             >
               <option value="all">All Countries</option>
-              <option value="high_performers">High Performers (ROAS ≥ 2x)</option>
-              <option value="underperformers">Underperformers (ROAS < 1x)</option>
+              <option value="high_performers">High Performers (ROAS &gt;= 2x)</option>
+              <option value="underperformers">Underperformers (ROAS &lt; 1x)</option>
             </select>
             <select
               value={sortBy}
