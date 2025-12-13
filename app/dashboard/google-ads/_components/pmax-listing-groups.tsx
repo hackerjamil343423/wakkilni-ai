@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ListingGroup } from "../types";
-import { AlertTriangle, ShoppingCart, Eye, TrendingUp } from "lucide-react";
+import { AlertTriangle, ShoppingCart, Eye } from "lucide-react";
 
 interface PMaxListingGroupsProps {
   data: ListingGroup[];
@@ -107,7 +107,7 @@ export function PMaxListingGroups({ data }: PMaxListingGroupsProps) {
             </Button>
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
+              onChange={(e) => setSortBy(e.target.value as "roas" | "spend" | "conversions" | "zombies")}
               className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"
             >
               <option value="roas">Sort by ROAS</option>

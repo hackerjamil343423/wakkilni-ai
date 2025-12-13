@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo } from "react";
-import { Campaign, KPIMetric } from "../types";
+import { Campaign, KPIMetric, Keyword } from "../types";
 import { TrendingUp, TrendingDown } from "lucide-react";
 
 interface KPIScorecardProps {
   campaigns: Campaign[];
-  keywords?: any[];
+  keywords?: Keyword[];
 }
 
 export function KPIScorecard({ campaigns, keywords = [] }: KPIScorecardProps) {

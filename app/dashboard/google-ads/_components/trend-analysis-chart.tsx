@@ -19,7 +19,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { DailyMetrics } from "../types";
 
 interface TrendAnalysisChartProps {
@@ -86,7 +85,7 @@ export function TrendAnalysisChart({
     return { total, avg, max, min };
   }, [data, selectedSecondary]);
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: DailyMetrics; value: number; name: string; color: string; dataKey: string }> }) => {
     if (!active || !payload) return null;
 
     return (
@@ -94,7 +93,7 @@ export function TrendAnalysisChart({
         <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
           {payload[0]?.payload?.date}
         </p>
-        {payload.map((entry: any, index: number) => (
+        {payload.map((entry, index: number) => (
           <p key={index} className="text-xs" style={{ color: entry.color }}>
             {entry.name}: {formatTooltipValue(entry.value, entry.dataKey === selectedPrimary ? primaryConfig?.format : secondaryConfig?.format)}
           </p>

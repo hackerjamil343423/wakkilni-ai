@@ -13,7 +13,6 @@ import {
   Recommendation,
   DailyMetrics,
   CampaignType,
-  CampaignStatus,
   MatchType,
   QualityComponent,
   AdStrength,
@@ -22,14 +21,6 @@ import {
 // Helper Functions
 function addVariance(base: number, variance: number = 0.2): number {
   return base * (1 + (Math.random() - 0.5) * variance);
-}
-
-function getWeekendMultiplier(date: Date, campaignType: CampaignType): number {
-  const isWeekend = [0, 6].includes(date.getDay());
-  if (campaignType === "SEARCH") return isWeekend ? 0.8 : 1;
-  if (campaignType === "SHOPPING") return isWeekend ? 1.2 : 1;
-  if (campaignType === "DISPLAY") return isWeekend ? 0.9 : 1;
-  return 1;
 }
 
 function calculateQualityScore(
@@ -270,7 +261,7 @@ export function generateAssetGroups(campaigns: Campaign[]): AssetGroup[] {
     for (let i = 0; i < groupCount; i++) {
       const strengthValues: AdStrength[] = ["EXCELLENT", "GOOD", "AVERAGE", "POOR"];
       const strengthWeights = [0.2, 0.4, 0.3, 0.1];
-      let random = Math.random();
+      const random = Math.random();
       let strength: AdStrength = "EXCELLENT";
       for (let j = 0; j < strengthValues.length; j++) {
         if (random < strengthWeights.slice(0, j + 1).reduce((a, b) => a + b, 0)) {

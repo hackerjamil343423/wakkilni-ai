@@ -68,7 +68,7 @@ export function QualityScoreMatrix({ data }: QualityScoreMatrixProps) {
     return "#fbbc04"; // Yellow
   };
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: QualityScoreDataPoint }> }) => {
     if (!active || !payload || !payload.length) return null;
 
     const data = payload[0].payload as QualityScoreDataPoint;

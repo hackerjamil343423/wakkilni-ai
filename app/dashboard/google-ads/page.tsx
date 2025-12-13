@@ -145,15 +145,7 @@ export default function GoogleAdsDashboard() {
     return true;
   });
 
-  // Calculate KPI values
-  const totalSpend = filteredCampaigns.reduce((sum, c) => sum + c.spend, 0);
-  const totalConversions = filteredCampaigns.reduce((sum, c) => sum + c.conversions, 0);
-  const totalConversionValue = filteredCampaigns.reduce((sum, c) => sum + c.conversionValue, 0);
-  const totalImpressions = filteredCampaigns.reduce((sum, c) => sum + c.impressions, 0);
-  const totalClicks = filteredCampaigns.reduce((sum, c) => sum + c.clicks, 0);
-  const avgQualityScore = (
-    keywords.reduce((sum, k) => sum + k.qualityScore, 0) / keywords.length
-  ).toFixed(1);
+  // Calculate KPI values (used by KPIScorecard component)
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">

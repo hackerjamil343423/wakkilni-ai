@@ -45,26 +45,11 @@ export function GeoPerformanceMap({ data }: GeoPerformanceMapProps) {
   const totalConversions = data.reduce((sum, c) => sum + c.conversions, 0);
   const avgRoas = (data.reduce((sum, c) => sum + c.roas, 0) / (data.length || 1)).toFixed(2);
 
-  const getRoasColor = (roas: number): string => {
-    if (roas >= 3) return "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300";
-    if (roas >= 2) return "bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300";
-    if (roas >= 1) return "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-300 dark:border-yellow-700 text-yellow-700 dark:text-yellow-300";
-    return "bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-700 text-red-700 dark:text-red-300";
-  };
-
   const getRoasTextColor = (roas: number): string => {
     if (roas >= 3) return "text-emerald-600 dark:text-emerald-400";
     if (roas >= 2) return "text-blue-600 dark:text-blue-400";
     if (roas >= 1) return "text-yellow-600 dark:text-yellow-400";
     return "text-red-600 dark:text-red-400";
-  };
-
-  const getPerformanceStatus = (roas: number): string => {
-    if (roas >= 3) return "Exceptional";
-    if (roas >= 2) return "Strong";
-    if (roas >= 1) return "Positive";
-    if (roas > 0) return "Weak";
-    return "Negative ROI";
   };
 
   // Calculate spend concentration
@@ -91,7 +76,7 @@ export function GeoPerformanceMap({ data }: GeoPerformanceMapProps) {
             <select
               value={filterMetric}
               onChange={(e) =>
-                setFilterMetric(e.target.value as any)
+                setFilterMetric(e.target.value as "all" | "high_performers" | "underperformers")
               }
               className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"
             >
@@ -101,7 +86,7 @@ export function GeoPerformanceMap({ data }: GeoPerformanceMapProps) {
             </select>
             <select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
+              onChange={(e) => setSortBy(e.target.value as "roas" | "spend" | "conversions")}
               className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"
             >
               <option value="roas">Sort by ROAS</option>

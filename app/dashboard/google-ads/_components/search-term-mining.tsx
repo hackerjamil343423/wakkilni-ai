@@ -5,7 +5,6 @@ import {
   Treemap,
   Tooltip,
   ResponsiveContainer,
-  Cell,
 } from "recharts";
 import {
   Card,
@@ -48,7 +47,7 @@ export function SearchTermMining({ data }: SearchTermMiningProps) {
     return "#ea4335"; // Red
   };
 
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: SearchTerm & { term: string; spend: number; conversions: number; conversionRate: number; roas: number; matchType: string } }> }) => {
     if (!active || !payload || !payload.length) return null;
 
     const data = payload[0].payload;
@@ -255,27 +254,43 @@ export function SearchTermMining({ data }: SearchTermMiningProps) {
   );
 }
 
+interface TreemapChild {
+  name: string;
+  value: number;
+  term: string;
+  spend: number;
+  conversions: number;
+  conversionRate: number;
+  roas: number;
+  matchType: string;
+}
+
+interface TreemapPayload {
+  name: string;
+  children: TreemapChild[];
+}
+
 interface CustomTreemapContentProps {
   x: number;
   y: number;
   width: number;
   height: number;
   index: number;
-  payload: any;
+  payload: TreemapPayload;
   selectedTerms: Set<string>;
   onSelect: (term: string) => void;
   getRoasColor: (roas: number) => string;
 }
 
-function CustomTreemapContent(props: any) {
+function CustomTreemapContent(props: CustomTreemapContentProps) {
   const { x, y, width, height, payload, selectedTerms, onSelect, getRoasColor } = props;
 
   if (!payload || !payload.children) return null;
 
   return (
     <>
-      {payload.children.map((child: any, index: number) => {
-        const childWidth = (width * child.value) / payload.children.reduce((sum: number, c: any) => sum + c.value, 0);
+      {payload.children.map((child: TreemapChild, index: number) => {
+        const childWidth = (width * child.value) / payload.children.reduce((sum: number, c: TreemapChild) => sum + c.value, 0);
         const childHeight = height;
         const color = getRoasColor(child.roas);
         const isSelected = selectedTerms.has(child.term);

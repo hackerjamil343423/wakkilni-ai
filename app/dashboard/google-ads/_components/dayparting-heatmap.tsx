@@ -80,12 +80,7 @@ export function DaypartingHeatmap({ data }: DaypartingHeatmapProps) {
     return "bg-blue-100 dark:bg-blue-900";
   };
 
-  // Find peak and dead hours
-  const peakHours = data
-    .filter((p) => p.conversions > 0)
-    .sort((a, b) => b.conversions - a.conversions)
-    .slice(0, 3);
-
+  // Find dead hours
   const deadZones = data.filter((p) => p.spend > 50 && p.conversions === 0);
 
   // Calculate hourly insights
@@ -126,7 +121,7 @@ export function DaypartingHeatmap({ data }: DaypartingHeatmapProps) {
           </div>
           <select
             value={selectedMetric}
-            onChange={(e) => setSelectedMetric(e.target.value as any)}
+            onChange={(e) => setSelectedMetric(e.target.value as "conversions" | "spend" | "cpa" | "roas")}
             className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"
           >
             <option value="conversions">Conversions</option>

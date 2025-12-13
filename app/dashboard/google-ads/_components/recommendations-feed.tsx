@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { Recommendation } from "../types";
 import {
   Lightbulb,
-  TrendingUp,
   AlertCircle,
   ChevronDown,
   ChevronUp,
@@ -95,7 +94,7 @@ export function RecommendationsFeed({ data }: RecommendationsFeedProps) {
           </div>
           <select
             value={filterImpact}
-            onChange={(e) => setFilterImpact(e.target.value as any)}
+            onChange={(e) => setFilterImpact(e.target.value as "all" | "HIGH" | "MEDIUM" | "LOW")}
             className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"
           >
             <option value="all">All Recommendations</option>
@@ -309,7 +308,7 @@ export function RecommendationsFeed({ data }: RecommendationsFeedProps) {
             <li className="flex gap-2">
               <span className="text-blue-600 dark:text-blue-400 font-semibold flex-shrink-0">2.</span>
               <span>
-                Test changes on small budgets first if you're unsure about the recommendation
+                Test changes on small budgets first if you&apos;re unsure about the recommendation
               </span>
             </li>
             <li className="flex gap-2">
@@ -321,7 +320,7 @@ export function RecommendationsFeed({ data }: RecommendationsFeedProps) {
             <li className="flex gap-2">
               <span className="text-blue-600 dark:text-blue-400 font-semibold flex-shrink-0">4.</span>
               <span>
-                Dismiss recommendations that don't align with your campaign strategy
+                Dismiss recommendations that don&apos;t align with your campaign strategy
               </span>
             </li>
           </ul>
