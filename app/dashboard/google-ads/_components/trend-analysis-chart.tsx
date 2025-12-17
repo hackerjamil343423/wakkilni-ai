@@ -3,23 +3,17 @@
 import { useState, useMemo } from "react";
 import {
   ComposedChart,
-  Line,
+  Area,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
 } from "recharts";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { DailyMetrics } from "../types";
+import { cn } from "@/lib/utils";
+import { TrendingUp, TrendingDown, ChevronDown } from "lucide-react";
 
 interface TrendAnalysisChartProps {
   data: DailyMetrics[];
@@ -28,15 +22,15 @@ interface TrendAnalysisChartProps {
 }
 
 const METRIC_OPTIONS = [
-  { id: "spend", label: "Ad Spend", format: "currency", color: "#ea4335" },
-  { id: "impressions", label: "Impressions", format: "number", color: "#1a73e8" },
-  { id: "clicks", label: "Clicks", format: "number", color: "#4285f4" },
-  { id: "conversions", label: "Conversions", format: "number", color: "#34a853" },
-  { id: "conversionValue", label: "Conv. Value", format: "currency", color: "#34a853" },
-  { id: "ctr", label: "CTR", format: "percentage", color: "#fbbc04" },
-  { id: "avgCpc", label: "Avg. CPC", format: "currency", color: "#fbbc04" },
-  { id: "cpa", label: "CPA", format: "currency", color: "#ea4335" },
-  { id: "roas", label: "ROAS", format: "ratio", color: "#34a853" },
+  { id: "spend", label: "Spend", format: "currency", color: "#6366f1" },
+  { id: "impressions", label: "Impressions", format: "number", color: "#8b5cf6" },
+  { id: "clicks", label: "Clicks", format: "number", color: "#3b82f6" },
+  { id: "conversions", label: "Conversions", format: "number", color: "#10b981" },
+  { id: "conversionValue", label: "Conv. Value", format: "currency", color: "#059669" },
+  { id: "ctr", label: "CTR", format: "percentage", color: "#f59e0b" },
+  { id: "avgCpc", label: "Avg. CPC", format: "currency", color: "#f97316" },
+  { id: "cpa", label: "CPA", format: "currency", color: "#ef4444" },
+  { id: "roas", label: "ROAS", format: "ratio", color: "#22c55e" },
 ];
 
 export function TrendAnalysisChart({
@@ -62,193 +56,267 @@ export function TrendAnalysisChart({
   }, [data, selectedPrimary, selectedSecondary]);
 
   const primaryStats = useMemo(() => {
-    if (data.length === 0) return { total: 0, avg: 0, max: 0, min: 0 };
+    if (data.length === 0) return { total: 0, avg: 0, change: 0 };
 
     const values = data.map((d) => d[selectedPrimary as keyof DailyMetrics] as number);
     const total = values.reduce((a, b) => a + b, 0);
     const avg = total / values.length;
-    const max = Math.max(...values);
-    const min = Math.min(...values);
+    const firstHalf = values.slice(0, Math.floor(values.length / 2));
+    const secondHalf = values.slice(Math.floor(values.length / 2));
+    const firstHalfAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
+    const secondHalfAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+    const change = firstHalfAvg > 0 ? ((secondHalfAvg - firstHalfAvg) / firstHalfAvg) * 100 : 0;
 
-    return { total, avg, max, min };
+    return { total, avg, change };
   }, [data, selectedPrimary]);
 
   const secondaryStats = useMemo(() => {
-    if (data.length === 0) return { total: 0, avg: 0, max: 0, min: 0 };
+    if (data.length === 0) return { total: 0, avg: 0, change: 0 };
 
     const values = data.map((d) => d[selectedSecondary as keyof DailyMetrics] as number);
     const total = values.reduce((a, b) => a + b, 0);
     const avg = total / values.length;
-    const max = Math.max(...values);
-    const min = Math.min(...values);
+    const firstHalf = values.slice(0, Math.floor(values.length / 2));
+    const secondHalf = values.slice(Math.floor(values.length / 2));
+    const firstHalfAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
+    const secondHalfAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+    const change = firstHalfAvg > 0 ? ((secondHalfAvg - firstHalfAvg) / firstHalfAvg) * 100 : 0;
 
-    return { total, avg, max, min };
+    return { total, avg, change };
   }, [data, selectedSecondary]);
 
-  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: DailyMetrics; value: number; name: string; color: string; dataKey: string }> }) => {
-    if (!active || !payload) return null;
+  const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; name: string; color: string; dataKey: string }>; label?: string }) => {
+    if (!active || !payload || !payload.length) return null;
 
     return (
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 shadow-lg">
-        <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
-          {payload[0]?.payload?.date}
+      <div className="bg-zinc-900 dark:bg-zinc-800 border border-zinc-700 rounded-lg p-3 shadow-xl min-w-[180px]">
+        <p className="text-xs font-medium text-zinc-400 mb-2 pb-2 border-b border-zinc-700">
+          {label}
         </p>
-        {payload.map((entry, index: number) => (
-          <p key={index} className="text-xs" style={{ color: entry.color }}>
-            {entry.name}: {formatTooltipValue(entry.value, entry.dataKey === selectedPrimary ? primaryConfig?.format : secondaryConfig?.format)}
-          </p>
-        ))}
+        {payload.map((entry, index: number) => {
+          const config = entry.dataKey === selectedPrimary ? primaryConfig : secondaryConfig;
+          return (
+            <div key={index} className="flex items-center justify-between gap-4 py-1">
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-2 h-2 rounded-full"
+                  style={{ backgroundColor: entry.color }}
+                />
+                <span className="text-xs text-zinc-300">{entry.name}</span>
+              </div>
+              <span className="text-xs font-semibold text-white tabular-nums">
+                {formatTooltipValue(entry.value, config?.format)}
+              </span>
+            </div>
+          );
+        })}
       </div>
     );
   };
 
   return (
-    <Card className="bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-800">
-      <CardHeader className="pb-4">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
+      {/* Header */}
+      <div className="p-5 pb-4 border-b border-zinc-100 dark:border-zinc-800">
+        <div className="flex items-start justify-between gap-4">
           <div>
-            <CardTitle>Trend Analysis</CardTitle>
-            <CardDescription>30-day performance overview</CardDescription>
+            <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
+              Performance Trends
+            </h3>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
+              30-day comparative analysis
+            </p>
           </div>
-          <div className="flex gap-2">
-            <select
-              value={selectedPrimary}
-              onChange={(e) => setSelectedPrimary(e.target.value)}
-              className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"
-            >
-              {METRIC_OPTIONS.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <select
-              value={selectedSecondary}
-              onChange={(e) => setSelectedSecondary(e.target.value)}
-              className="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-sm font-medium border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300"
-            >
-              {METRIC_OPTIONS.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+          <div className="flex items-center gap-2">
+            {/* Primary Metric Selector */}
+            <div className="relative">
+              <select
+                value={selectedPrimary}
+                onChange={(e) => setSelectedPrimary(e.target.value)}
+                className="appearance-none pl-3 pr-8 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-xs font-medium border-0 text-zinc-700 dark:text-zinc-300 cursor-pointer focus:ring-2 focus:ring-indigo-500"
+              >
+                {METRIC_OPTIONS.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-400 pointer-events-none" />
+            </div>
+            <span className="text-xs text-zinc-400">vs</span>
+            {/* Secondary Metric Selector */}
+            <div className="relative">
+              <select
+                value={selectedSecondary}
+                onChange={(e) => setSelectedSecondary(e.target.value)}
+                className="appearance-none pl-3 pr-8 py-1.5 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-xs font-medium border-0 text-zinc-700 dark:text-zinc-300 cursor-pointer focus:ring-2 focus:ring-indigo-500"
+              >
+                {METRIC_OPTIONS.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-400 pointer-events-none" />
+            </div>
           </div>
         </div>
-      </CardHeader>
 
-      <CardContent className="space-y-6">
-        {/* Chart */}
-        <div className="w-full h-[400px]">
+        {/* Stats Summary */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+          <StatCard
+            label={`${primaryConfig?.label} Total`}
+            value={formatValue(primaryStats.total, primaryConfig?.format)}
+            change={primaryStats.change}
+            color={primaryConfig?.color || "#6366f1"}
+          />
+          <StatCard
+            label={`${primaryConfig?.label} Avg`}
+            value={formatValue(primaryStats.avg, primaryConfig?.format)}
+            color={primaryConfig?.color || "#6366f1"}
+          />
+          <StatCard
+            label={`${secondaryConfig?.label} Total`}
+            value={formatValue(secondaryStats.total, secondaryConfig?.format)}
+            change={secondaryStats.change}
+            color={secondaryConfig?.color || "#10b981"}
+          />
+          <StatCard
+            label={`${secondaryConfig?.label} Avg`}
+            value={formatValue(secondaryStats.avg, secondaryConfig?.format)}
+            color={secondaryConfig?.color || "#10b981"}
+          />
+        </div>
+      </div>
+
+      {/* Chart */}
+      <div className="p-5 pt-4">
+        <div className="w-full h-[340px]">
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+            <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
               <defs>
-                <linearGradient id="colorPrimary" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={primaryConfig?.color} stopOpacity={0.3} />
-                  <stop offset="95%" stopColor={primaryConfig?.color} stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="colorSecondary" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={secondaryConfig?.color} stopOpacity={0.3} />
-                  <stop offset="95%" stopColor={secondaryConfig?.color} stopOpacity={0} />
+                <linearGradient id="primaryGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={primaryConfig?.color} stopOpacity={0.15} />
+                  <stop offset="100%" stopColor={primaryConfig?.color} stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" dark-stroke="#374151" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="#e4e4e7"
+                className="dark:stroke-zinc-800"
+              />
               <XAxis
                 dataKey="date"
-                stroke="#6b7280"
-                tick={{ fontSize: 12 }}
-                interval={Math.floor(chartData.length / 6)}
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fill: "#a1a1aa" }}
+                interval="preserveStartEnd"
+                tickMargin={8}
               />
               <YAxis
                 yAxisId="left"
-                stroke={primaryConfig?.color}
-                tick={{ fontSize: 12 }}
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fill: "#a1a1aa" }}
+                tickFormatter={(value) =>
+                  primaryConfig?.format === "currency"
+                    ? `$${value >= 1000 ? (value / 1000).toFixed(0) + "k" : value}`
+                    : value >= 1000 ? (value / 1000).toFixed(0) + "k" : value.toString()
+                }
+                width={50}
               />
               <YAxis
                 yAxisId="right"
                 orientation="right"
-                stroke={secondaryConfig?.color}
-                tick={{ fontSize: 12 }}
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fill: "#a1a1aa" }}
+                width={40}
               />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend
-                wrapperStyle={{ paddingTop: "20px" }}
-                iconType="line"
+              <Tooltip
+                content={<CustomTooltip />}
+                cursor={{ stroke: "#d4d4d8", strokeDasharray: "4 4" }}
+              />
+              <Area
+                yAxisId="left"
+                type="monotone"
+                dataKey={selectedPrimary}
+                name={primaryConfig?.label}
+                stroke={primaryConfig?.color}
+                strokeWidth={2}
+                fill="url(#primaryGradient)"
+                dot={false}
+                activeDot={{
+                  r: 5,
+                  fill: primaryConfig?.color,
+                  stroke: "#fff",
+                  strokeWidth: 2,
+                }}
               />
               <Bar
-                yAxisId="left"
-                dataKey={selectedPrimary}
-                fill={primaryConfig?.color}
-                fillOpacity={0.6}
-                name={primaryConfig?.label}
-                radius={[8, 8, 0, 0]}
-              />
-              <Line
                 yAxisId="right"
-                type="monotone"
                 dataKey={selectedSecondary}
-                stroke={secondaryConfig?.color}
-                strokeWidth={2}
-                dot={{ fill: secondaryConfig?.color, r: 4 }}
-                activeDot={{ r: 6 }}
                 name={secondaryConfig?.label}
+                fill={secondaryConfig?.color}
+                radius={[4, 4, 0, 0]}
+                maxBarSize={20}
+                opacity={0.8}
               />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {/* Primary Stats */}
-          <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-3">
-            <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">
-              {primaryConfig?.label} - Total
-            </div>
-            <div
-              className="text-lg font-semibold"
-              style={{ color: primaryConfig?.color }}
-            >
-              {formatValue(primaryStats.total, primaryConfig?.format)}
-            </div>
+        {/* Legend */}
+        <div className="flex items-center justify-center gap-6 mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: primaryConfig?.color }} />
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">{primaryConfig?.label}</span>
           </div>
-          <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-3">
-            <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">
-              {primaryConfig?.label} - Avg
-            </div>
-            <div
-              className="text-lg font-semibold"
-              style={{ color: primaryConfig?.color }}
-            >
-              {formatValue(primaryStats.avg, primaryConfig?.format)}
-            </div>
-          </div>
-
-          {/* Secondary Stats */}
-          <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-3">
-            <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">
-              {secondaryConfig?.label} - Total
-            </div>
-            <div
-              className="text-lg font-semibold"
-              style={{ color: secondaryConfig?.color }}
-            >
-              {formatValue(secondaryStats.total, secondaryConfig?.format)}
-            </div>
-          </div>
-          <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-3">
-            <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">
-              {secondaryConfig?.label} - Avg
-            </div>
-            <div
-              className="text-lg font-semibold"
-              style={{ color: secondaryConfig?.color }}
-            >
-              {formatValue(secondaryStats.avg, secondaryConfig?.format)}
-            </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded" style={{ backgroundColor: secondaryConfig?.color }} />
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">{secondaryConfig?.label}</span>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({
+  label,
+  value,
+  change,
+  color,
+}: {
+  label: string;
+  value: string;
+  change?: number;
+  color: string;
+}) {
+  return (
+    <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-lg p-3">
+      <div className="text-xs text-zinc-500 dark:text-zinc-400 font-medium mb-1">
+        {label}
+      </div>
+      <div className="flex items-baseline gap-2">
+        <span
+          className="text-lg font-semibold tabular-nums"
+          style={{ color }}
+        >
+          {value}
+        </span>
+        {change !== undefined && (
+          <span className={cn(
+            "flex items-center gap-0.5 text-xs font-medium",
+            change >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"
+          )}>
+            {change >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+            {Math.abs(change).toFixed(1)}%
+          </span>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -256,11 +324,17 @@ function formatValue(value: number, format?: string): string {
   if (!format) return value.toString();
 
   if (format === "currency") {
+    if (value >= 1000000) {
+      return `$${(value / 1000000).toFixed(1)}M`;
+    }
+    if (value >= 1000) {
+      return `$${(value / 1000).toFixed(1)}K`;
+    }
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "USD",
       minimumFractionDigits: 0,
-      maximumFractionDigits: value < 100 ? 2 : 0,
+      maximumFractionDigits: 2,
     }).format(value);
   }
 
@@ -277,7 +351,7 @@ function formatValue(value: number, format?: string): string {
       return (value / 1000000).toFixed(1) + "M";
     }
     if (value >= 1000) {
-      return (value / 1000).toFixed(1) + "k";
+      return (value / 1000).toFixed(1) + "K";
     }
   }
 

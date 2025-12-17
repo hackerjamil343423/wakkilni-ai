@@ -82,7 +82,7 @@ export default function UserProfile({ mini }: { mini?: boolean }) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <div
-          className={`flex gap-2 justify-start items-center w-full rounded ${mini ? "" : "px-4 pt-2 pb-3"}`}
+          className={`flex gap-2 justify-start items-center w-full rounded cursor-pointer hover:bg-sidebar-accent/50 transition-colors ${mini ? "" : "px-4 pt-2 pb-3"}`}
         >
           <Avatar>
             {loading ? (
@@ -102,11 +102,14 @@ export default function UserProfile({ mini }: { mini?: boolean }) {
             )}
           </Avatar>
           {mini ? null : (
-            <div className="flex items-center gap-2">
-              <p className="font-medium text-md">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <p
+                className="font-medium text-md truncate"
+                title={userInfo?.name || "User"}
+              >
                 {loading ? "Loading..." : userInfo?.name || "User"}
               </p>
-              {loading && <Loader2 className="h-3 w-3 animate-spin" />}
+              {loading && <Loader2 className="h-3 w-3 animate-spin flex-shrink-0" />}
             </div>
           )}
         </div>

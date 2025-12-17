@@ -5,12 +5,11 @@ import clsx from "clsx";
 import {
   Activity,
   Bot,
-  CreditCard,
-  Database,
   Lightbulb,
   LucideIcon,
   ShoppingCart,
   Sparkles,
+  Plug,
 } from "lucide-react";
 import {
   SiFacebook,
@@ -80,20 +79,10 @@ const navSections: NavSection[] = [
         href: "/dashboard/ecommerce",
         icon: ShoppingCart,
       },
-    ],
-  },
-  {
-    title: "Configuration",
-    items: [
       {
-        label: "Data Sources",
-        href: "/dashboard/integrations",
-        icon: Database,
-      },
-      {
-        label: "Billing",
-        href: "/dashboard/billing",
-        icon: CreditCard,
+        label: "Connect Platform",
+        href: "/dashboard/connect-platform",
+        icon: Plug,
       },
     ],
   },

@@ -50,8 +50,9 @@ import {
   Zap,
   Video,
   Globe,
-  Lightbulb,
+  Sparkles,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type TabId = "overview" | "search" | "pmax" | "video" | "audience" | "recommendations";
 
@@ -59,46 +60,16 @@ interface Tab {
   id: TabId;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  description: string;
+  badge?: number;
 }
 
 const TABS: Tab[] = [
-  {
-    id: "overview",
-    label: "Overview",
-    icon: BarChart3,
-    description: "Account performance and trends",
-  },
-  {
-    id: "search",
-    label: "Search Intelligence",
-    icon: Search,
-    description: "Quality scores and search terms",
-  },
-  {
-    id: "pmax",
-    label: "Performance Max",
-    icon: Zap,
-    description: "Asset groups and listing performance",
-  },
-  {
-    id: "video",
-    label: "Video & Creative",
-    icon: Video,
-    description: "Video engagement and creative analysis",
-  },
-  {
-    id: "audience",
-    label: "Audience & Geo",
-    icon: Globe,
-    description: "Demographics, location, and day-parting",
-  },
-  {
-    id: "recommendations",
-    label: "Recommendations",
-    icon: Lightbulb,
-    description: "AI-powered optimization suggestions",
-  },
+  { id: "overview", label: "Overview", icon: BarChart3 },
+  { id: "search", label: "Search", icon: Search },
+  { id: "pmax", label: "PMax", icon: Zap },
+  { id: "video", label: "Video", icon: Video },
+  { id: "audience", label: "Audience", icon: Globe },
+  { id: "recommendations", label: "AI Insights", icon: Sparkles },
 ];
 
 export default function GoogleAdsDashboard() {
@@ -135,7 +106,6 @@ export default function GoogleAdsDashboard() {
     const initializeData = () => {
       setIsLoading(true);
       try {
-        // Generate all mock data
         const daily = generateDailyMetrics(30);
         const camps = generateCampaigns(10);
         const adGrps = generateAdGroups(camps);
@@ -150,7 +120,6 @@ export default function GoogleAdsDashboard() {
         const recsData = generateRecommendations();
         const qualityMatrix = generateQualityScoreMatrix();
 
-        // Set all states
         setDailyMetrics(daily);
         setCampaigns(camps);
         setAdGroups(adGrps);
@@ -185,7 +154,6 @@ export default function GoogleAdsDashboard() {
     }, 500);
   };
 
-  // Filter data based on current filters
   const filteredCampaigns = campaigns.filter((campaign) => {
     if (
       filters.campaignTypes.length > 0 &&
@@ -202,9 +170,13 @@ export default function GoogleAdsDashboard() {
     return true;
   });
 
+  // Count high-impact recommendations for badge
+  const highImpactCount = recommendations.filter((r) => r.impact === "HIGH").length;
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      {/* Main Container */}
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         {/* Header */}
         <DashboardHeader
           onFiltersChange={handleFiltersChange}
@@ -212,107 +184,106 @@ export default function GoogleAdsDashboard() {
           onRefresh={handleRefresh}
         />
 
-        {/* Tab Navigation */}
-        <div className="bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-800 rounded-lg overflow-hidden">
-          <div className="border-b border-gray-200 dark:border-gray-800">
-            <nav className="flex overflow-x-auto" aria-label="Tabs">
-              {TABS.map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`
-                      flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 whitespace-nowrap transition-colors
-                      ${
-                        isActive
-                          ? "border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
-                          : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
-                      }
-                    `}
-                  >
-                    <Icon className="h-5 w-5" />
-                    <div className="text-left">
-                      <div>{tab.label}</div>
-                      <div className={`text-xs font-normal ${isActive ? 'text-blue-500 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
-                        {tab.description}
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
+        {/* Tab Navigation - Minimal, Linear-style */}
+        <div className="flex items-center gap-1 p-1 bg-zinc-100 dark:bg-zinc-900 rounded-lg w-fit">
+          {TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            const showBadge = tab.id === "recommendations" && highImpactCount > 0;
 
-          {/* Tab Content */}
-          <div className="p-6">
-            {isLoading ? (
-              <div className="space-y-4">
-                {[...Array(3)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-800 rounded-lg p-4 animate-pulse h-32"
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={cn(
+                  "relative flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all duration-200",
+                  isActive
+                    ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm"
+                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+                )}
+              >
+                <Icon className={cn(
+                  "h-4 w-4",
+                  tab.id === "recommendations" && "text-violet-500"
+                )} />
+                <span>{tab.label}</span>
+                {showBadge && (
+                  <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold bg-red-500 text-white rounded-full">
+                    {highImpactCount}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Tab Content */}
+        <div className="space-y-6">
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[...Array(4)].map((_, i) => (
+                <div
+                  key={i}
+                  className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 animate-pulse"
+                >
+                  <div className="h-4 w-24 bg-zinc-200 dark:bg-zinc-800 rounded mb-3" />
+                  <div className="h-8 w-32 bg-zinc-200 dark:bg-zinc-800 rounded mb-2" />
+                  <div className="h-3 w-20 bg-zinc-200 dark:bg-zinc-800 rounded" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <>
+              {/* Overview Tab */}
+              {activeTab === "overview" && (
+                <div className="space-y-6">
+                  <KPIScorecard campaigns={filteredCampaigns} keywords={keywords} />
+                  <TrendAnalysisChart
+                    data={dailyMetrics}
+                    primaryMetric="spend"
+                    secondaryMetric="conversions"
                   />
-                ))}
-              </div>
-            ) : (
-              <>
-                {/* Overview Tab */}
-                {activeTab === "overview" && (
-                  <div className="space-y-6">
-                    <KPIScorecard campaigns={filteredCampaigns} keywords={keywords} />
-                    <TrendAnalysisChart
-                      data={dailyMetrics}
-                      primaryMetric="spend"
-                      secondaryMetric="conversions"
-                    />
-                  </div>
-                )}
+                </div>
+              )}
 
-                {/* Search Intelligence Tab */}
-                {activeTab === "search" && (
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                      <QualityScoreMatrix data={qualityScoreMatrix} />
-                      <SearchTermMining data={searchTerms} />
-                    </div>
-                  </div>
-                )}
+              {/* Search Intelligence Tab */}
+              {activeTab === "search" && (
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                  <QualityScoreMatrix data={qualityScoreMatrix} />
+                  <SearchTermMining data={searchTerms} />
+                </div>
+              )}
 
-                {/* Performance Max Tab */}
-                {activeTab === "pmax" && (
-                  <div className="space-y-6">
-                    <PMaxAssetGroups data={assetGroups} />
-                    <PMaxListingGroups data={listingGroups} />
-                  </div>
-                )}
+              {/* Performance Max Tab */}
+              {activeTab === "pmax" && (
+                <div className="space-y-6">
+                  <PMaxAssetGroups data={assetGroups} />
+                  <PMaxListingGroups data={listingGroups} />
+                </div>
+              )}
 
-                {/* Video & Creative Tab */}
-                {activeTab === "video" && (
-                  <div className="space-y-6">
-                    <VideoEngagementFunnel data={videos} />
-                  </div>
-                )}
+              {/* Video & Creative Tab */}
+              {activeTab === "video" && (
+                <VideoEngagementFunnel data={videos} />
+              )}
 
-                {/* Audience & Geo Tab */}
-                {activeTab === "audience" && (
-                  <div className="space-y-6">
-                    <AudienceDemographics data={demographics} />
+              {/* Audience & Geo Tab */}
+              {activeTab === "audience" && (
+                <div className="space-y-6">
+                  <AudienceDemographics data={demographics} />
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                     <GeoPerformanceMap data={geoData} />
                     <DaypartingHeatmap data={hourlyData} />
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* Recommendations Tab */}
-                {activeTab === "recommendations" && (
-                  <div className="space-y-6">
-                    <RecommendationsFeed data={recommendations} />
-                  </div>
-                )}
-              </>
-            )}
-          </div>
+              {/* Recommendations Tab */}
+              {activeTab === "recommendations" && (
+                <RecommendationsFeed data={recommendations} />
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>

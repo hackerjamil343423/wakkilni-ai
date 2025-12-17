@@ -2,15 +2,9 @@
 
 import { useMemo } from "react";
 import { VideoPerformance } from "../types";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Film, AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface VideoEngagementFunnelProps {
   data: VideoPerformance[];
@@ -88,23 +82,53 @@ export function VideoEngagementFunnel({ data }: VideoEngagementFunnelProps) {
     return "Poor - Video too long or weak CTA";
   };
 
+  const totalVideos = data.length;
+  const avgViewRate = (data.reduce((sum, v) => sum + v.viewRate, 0) / (data.length || 1)) * 100;
+  const totalSpend = data.reduce((sum, v) => sum + v.spend, 0);
+  const avgRoas = data.reduce((sum, v) => sum + (v.conversions > 0 ? (v.conversionValue / v.spend) : 0), 0) / (data.length || 1);
+
   return (
-    <Card className="bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-800">
-      <CardHeader className="pb-4">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden">
+      {/* Header */}
+      <div className="p-5 pb-4 border-b border-zinc-100 dark:border-zinc-800">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-br from-pink-500 to-rose-600">
+            <Film className="h-5 w-5 text-white" />
+          </div>
           <div>
-            <CardTitle className="flex items-center gap-2">
-              <Film className="h-5 w-5" />
+            <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
               Video Engagement Funnel
-            </CardTitle>
-            <CardDescription>
-              Quartile completion analysis and viewer retention tracking
-            </CardDescription>
+            </h3>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+              Quartile completion analysis
+            </p>
           </div>
         </div>
-      </CardHeader>
+      </div>
 
-      <CardContent className="space-y-6">
+      {/* Stats Row */}
+      <div className="grid grid-cols-4 gap-px bg-zinc-100 dark:bg-zinc-800">
+        <div className="bg-white dark:bg-zinc-900 p-4">
+          <div className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Videos</div>
+          <div className="text-xl font-semibold text-zinc-900 dark:text-zinc-50 tabular-nums">{totalVideos}</div>
+        </div>
+        <div className="bg-white dark:bg-zinc-900 p-4">
+          <div className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Avg View Rate</div>
+          <div className="text-xl font-semibold text-zinc-900 dark:text-zinc-50 tabular-nums">{avgViewRate.toFixed(1)}%</div>
+        </div>
+        <div className="bg-white dark:bg-zinc-900 p-4">
+          <div className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Total Spend</div>
+          <div className="text-xl font-semibold text-zinc-900 dark:text-zinc-50 tabular-nums">${(totalSpend / 1000).toFixed(1)}k</div>
+        </div>
+        <div className="bg-white dark:bg-zinc-900 p-4">
+          <div className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Avg ROAS</div>
+          <div className={cn("text-xl font-semibold tabular-nums", avgRoas >= 2 ? "text-emerald-600 dark:text-emerald-400" : avgRoas >= 1 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400")}>
+            {avgRoas.toFixed(2)}x
+          </div>
+        </div>
+      </div>
+
+      <div className="p-5 space-y-6">
         {/* Main Funnel Chart */}
         <div className="w-full h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
@@ -114,71 +138,78 @@ export function VideoEngagementFunnel({ data }: VideoEngagementFunnelProps) {
             >
               <defs>
                 <linearGradient id="colorFunnel" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#1a73e8" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#4285f4" stopOpacity={0.8} />
+                  <stop offset="5%" stopColor="#ec4899" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.6} />
                 </linearGradient>
               </defs>
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke="#e5e7eb"
+                stroke="#e4e4e7"
+                className="dark:stroke-zinc-800"
                 vertical={false}
               />
               <XAxis
                 dataKey="name"
-                stroke="#6b7280"
-                tick={{ fontSize: 12, angle: -45, textAnchor: "end", height: 80 }}
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fill: "#a1a1aa", angle: -45, textAnchor: "end" }}
               />
-              <YAxis stroke="#6b7280" tick={{ fontSize: 12 }} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#a1a1aa" }} />
               <Tooltip
                 content={({ active, payload }) => {
                   if (!active || !payload) return null;
                   const data = payload[0].payload;
                   return (
-                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 shadow-lg">
-                      <p className="font-semibold text-gray-900 dark:text-white">
+                    <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-3 shadow-xl min-w-[180px]">
+                      <p className="font-semibold text-white text-sm mb-2 pb-2 border-b border-zinc-700">
                         {data.name}
                       </p>
-                      <p className="text-sm text-gray-700 dark:text-gray-300">
-                        Views: {data.value.toLocaleString()}
-                      </p>
-                      <p className="text-sm text-gray-700 dark:text-gray-300">
-                        Percentage: {data.percentage.toFixed(2)}%
-                      </p>
-                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Retention: {data.retention.toFixed(1)}%
-                      </p>
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between">
+                          <span className="text-xs text-zinc-400">Views</span>
+                          <span className="text-xs font-semibold text-white tabular-nums">{data.value.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-xs text-zinc-400">Percentage</span>
+                          <span className="text-xs font-semibold text-white tabular-nums">{data.percentage.toFixed(2)}%</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-xs text-zinc-400">Retention</span>
+                          <span className="text-xs font-semibold text-white tabular-nums">{data.retention.toFixed(1)}%</span>
+                        </div>
+                      </div>
                     </div>
                   );
                 }}
               />
-              <Bar dataKey="value" fill="url(#colorFunnel)" radius={[8, 8, 0, 0]} />
+              <Bar dataKey="value" fill="url(#colorFunnel)" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
         {/* Funnel Details Table */}
-        <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">
+        <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-4">
+          <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-4">
             Funnel Metrics
           </h4>
           <div className="space-y-3">
             {funnelData.map((stage, index) => (
               <div key={stage.name} className="space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  <span className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
                     {stage.name}
                   </span>
                   <div className="flex items-center gap-4">
-                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                    <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 tabular-nums">
                       {stage.value.toLocaleString()}
                     </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 w-16 text-right">
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400 w-16 text-right tabular-nums">
                       {stage.percentage.toFixed(1)}%
                     </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 bg-gray-300 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+                  <div className="flex-1 bg-zinc-200 dark:bg-zinc-700 rounded-full h-1.5 overflow-hidden">
                     <div
                       className="h-full transition-all"
                       style={{
@@ -189,7 +220,7 @@ export function VideoEngagementFunnel({ data }: VideoEngagementFunnelProps) {
                   </div>
                   {index > 0 && (
                     <span
-                      className="text-xs font-semibold w-12 text-right"
+                      className="text-xs font-semibold w-12 text-right tabular-nums"
                       style={{ color: getRetentionColor(stage.retention) }}
                     >
                       {stage.retention.toFixed(0)}%
@@ -202,33 +233,31 @@ export function VideoEngagementFunnel({ data }: VideoEngagementFunnelProps) {
         </div>
 
         {/* Diagnostic Insights */}
-        <div className="space-y-3">
-          <h4 className="text-sm font-semibold text-gray-900 dark:text-white">
-            Diagnostic Insights
-          </h4>
-
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {funnelData[2] && (
             <div
-              className={`border-l-4 rounded-lg p-3 ${
+              className={cn(
+                "border rounded-xl p-4",
                 funnelData[2].retention >= 80
-                  ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500"
+                  ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800"
                   : funnelData[2].retention >= 60
-                    ? "bg-blue-50 dark:bg-blue-900/20 border-blue-500"
+                    ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
                     : funnelData[2].retention >= 40
-                      ? "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-500"
-                      : "bg-red-50 dark:bg-red-900/20 border-red-500"
-              }`}
+                      ? "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800"
+                      : "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
+              )}
             >
-              <div className="flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-medium text-gray-900 dark:text-white">Hook Performance</p>
-                  <p className="text-gray-600 dark:text-gray-400 text-xs mt-1">
-                    First 5 seconds (Impressions → 25% completion):{" "}
-                    <span className="font-semibold">{funnelData[2].retention.toFixed(1)}%</span>{" "}
-                    retention
+              <div className="flex items-start gap-3">
+                <AlertCircle className={cn(
+                  "h-4 w-4 flex-shrink-0 mt-0.5",
+                  funnelData[2].retention >= 60 ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"
+                )} />
+                <div>
+                  <p className="font-semibold text-zinc-900 dark:text-zinc-50 text-sm">Hook Performance</p>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                    First 5 seconds: <span className="font-semibold tabular-nums">{funnelData[2].retention.toFixed(1)}%</span> retention
                   </p>
-                  <p className="text-gray-600 dark:text-gray-400 text-xs mt-1">
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
                     {getRetentionStatus(funnelData[2].retention)}
                   </p>
                 </div>
@@ -238,27 +267,25 @@ export function VideoEngagementFunnel({ data }: VideoEngagementFunnelProps) {
 
           {funnelData[4] && funnelData[5] && (
             <div
-              className={`border-l-4 rounded-lg p-3 ${
-                funnelData[4].retention - funnelData[5].retention < 20
-                  ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-500"
-                  : funnelData[4].retention - funnelData[5].retention < 40
-                    ? "bg-yellow-50 dark:bg-yellow-900/20 border-yellow-500"
-                    : "bg-red-50 dark:bg-red-900/20 border-red-500"
-              }`}
+              className={cn(
+                "border rounded-xl p-4",
+                funnelData[5].retention >= 50
+                  ? "bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800"
+                  : "bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800"
+              )}
             >
-              <div className="flex items-start gap-2">
-                <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-medium text-gray-900 dark:text-white">Pitch & CTA Performance</p>
-                  <p className="text-gray-600 dark:text-gray-400 text-xs mt-1">
-                    Final segment (75% → 100% completion):{" "}
-                    <span className="font-semibold">{funnelData[5].retention.toFixed(1)}%</span>{" "}
-                    retention
+              <div className="flex items-start gap-3">
+                <AlertCircle className={cn(
+                  "h-4 w-4 flex-shrink-0 mt-0.5",
+                  funnelData[5].retention >= 50 ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"
+                )} />
+                <div>
+                  <p className="font-semibold text-zinc-900 dark:text-zinc-50 text-sm">CTA Performance</p>
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                    Final segment: <span className="font-semibold tabular-nums">{funnelData[5].retention.toFixed(1)}%</span> retention
                   </p>
-                  <p className="text-gray-600 dark:text-gray-400 text-xs mt-1">
-                    {funnelData[5].retention < 50
-                      ? "Video may be too long or CTA is weak. Consider shorter format or stronger call-to-action."
-                      : "Good pitch effectiveness. Viewers are completing the video."}
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                    {funnelData[5].retention < 50 ? "Consider shorter format" : "Good completion rate"}
                   </p>
                 </div>
               </div>
@@ -268,27 +295,27 @@ export function VideoEngagementFunnel({ data }: VideoEngagementFunnelProps) {
 
         {/* Top Videos by Spend */}
         {topVideos.length > 0 && (
-          <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-4">
-            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">
+          <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-4">
+            <h4 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 mb-3">
               Top Videos by Spend
             </h4>
             <div className="space-y-2">
               {topVideos.map((video) => (
-                <div key={video.videoId} className="flex items-center justify-between p-2 hover:bg-white dark:hover:bg-gray-900/50 rounded transition-colors">
+                <div key={video.videoId} className="flex items-center justify-between p-2 hover:bg-white dark:hover:bg-zinc-800 rounded-lg transition-colors">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                    <p className="text-sm font-medium text-zinc-900 dark:text-zinc-50 truncate">
                       {video.title}
                     </p>
-                    <div className="flex gap-3 text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      <span>{video.impressions.toLocaleString()} impressions</span>
-                      <span>{video.views.toLocaleString()} views</span>
+                    <div className="flex gap-3 text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                      <span className="tabular-nums">{video.impressions.toLocaleString()} impr</span>
+                      <span className="tabular-nums">{video.views.toLocaleString()} views</span>
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0 ml-4">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                    <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-50 tabular-nums">
                       ${video.spend.toFixed(0)}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                    <p className="text-xs text-zinc-500 dark:text-zinc-400 tabular-nums">
                       {(video.viewRate * 100).toFixed(1)}% VR
                     </p>
                   </div>
@@ -297,51 +324,7 @@ export function VideoEngagementFunnel({ data }: VideoEngagementFunnelProps) {
             </div>
           </div>
         )}
-
-        {/* Summary Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-3">
-            <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">
-              Total Videos
-            </div>
-            <div className="text-lg font-semibold text-gray-900 dark:text-white">
-              {data.length}
-            </div>
-          </div>
-          <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-3">
-            <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">
-              Avg View Rate
-            </div>
-            <div className="text-lg font-semibold text-gray-900 dark:text-white">
-              {(
-                (data.reduce((sum, v) => sum + v.viewRate, 0) / (data.length || 1)) *
-                100
-              ).toFixed(1)}
-              %
-            </div>
-          </div>
-          <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-3">
-            <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">
-              Total Spend
-            </div>
-            <div className="text-lg font-semibold text-gray-900 dark:text-white">
-              ${(data.reduce((sum, v) => sum + v.spend, 0) / 1000).toFixed(1)}k
-            </div>
-          </div>
-          <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-3">
-            <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">
-              Avg ROAS
-            </div>
-            <div className="text-lg font-semibold text-gray-900 dark:text-white">
-              {(
-                data.reduce((sum, v) => sum + (v.conversions > 0 ? (v.conversionValue / v.spend) : 0), 0) /
-                (data.length || 1)
-              ).toFixed(2)}
-              x
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

@@ -8,23 +8,25 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   Cell,
   ZAxis,
+  ReferenceLine,
 } from "recharts";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { QualityScoreDataPoint } from "../types";
+import { cn } from "@/lib/utils";
+import { AlertTriangle, CheckCircle, AlertCircle, Target } from "lucide-react";
 
 interface QualityScoreMatrixProps {
   data: QualityScoreDataPoint[];
 }
+
+const FILTERS = [
+  { id: null, label: "All", icon: Target },
+  { id: "below_average", label: "Issues", icon: AlertTriangle },
+  { id: "high_spend_low_quality", label: "Bleeders", icon: AlertCircle },
+  { id: "high_cpa", label: "High CPA", icon: AlertCircle },
+] as const;
 
 export function QualityScoreMatrix({ data }: QualityScoreMatrixProps) {
   const [selectedFilter, setSelectedFilter] = useState<string | null>(null);
@@ -52,76 +54,83 @@ export function QualityScoreMatrix({ data }: QualityScoreMatrixProps) {
     return data;
   }, [data, selectedFilter]);
 
+  const stats = useMemo(() => {
+    const avgQS = filteredData.reduce((sum, k) => sum + k.qualityScore, 0) / (filteredData.length || 1);
+    const avgCPA = filteredData.reduce((sum, k) => sum + k.cpa, 0) / (filteredData.length || 1);
+    const totalSpend = filteredData.reduce((sum, k) => sum + k.spend, 0);
+    const belowAvgCount = filteredData.filter(
+      (d) =>
+        d.expectedCTR === "BELOW_AVERAGE" ||
+        d.adRelevance === "BELOW_AVERAGE" ||
+        d.landingPageExperience === "BELOW_AVERAGE"
+    ).length;
+
+    return { avgQS, avgCPA, totalSpend, belowAvgCount };
+  }, [filteredData]);
+
   const getQualityColor = (point: QualityScoreDataPoint): string => {
     const allAboveAverage =
       point.expectedCTR === "ABOVE_AVERAGE" &&
       point.adRelevance === "ABOVE_AVERAGE" &&
       point.landingPageExperience === "ABOVE_AVERAGE";
 
-    const allBelowAverage =
+    const anyBelowAverage =
       point.expectedCTR === "BELOW_AVERAGE" ||
       point.adRelevance === "BELOW_AVERAGE" ||
       point.landingPageExperience === "BELOW_AVERAGE";
 
-    if (allAboveAverage) return "#34a853"; // Green
-    if (allBelowAverage) return "#ea4335"; // Red
-    return "#fbbc04"; // Yellow
+    if (allAboveAverage) return "#10b981";
+    if (anyBelowAverage) return "#ef4444";
+    return "#f59e0b";
   };
 
   const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ payload: QualityScoreDataPoint }> }) => {
     if (!active || !payload || !payload.length) return null;
 
-    const data = payload[0].payload as QualityScoreDataPoint;
+    const point = payload[0].payload as QualityScoreDataPoint;
+
+    const getStatusIcon = (status: string) => {
+      if (status === "ABOVE_AVERAGE") return <CheckCircle className="h-3 w-3 text-emerald-400" />;
+      if (status === "BELOW_AVERAGE") return <AlertTriangle className="h-3 w-3 text-red-400" />;
+      return <AlertCircle className="h-3 w-3 text-amber-400" />;
+    };
 
     return (
-      <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 shadow-lg w-64">
-        <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">
-          {data.keyword}
+      <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-4 shadow-xl min-w-[220px]">
+        <p className="text-sm font-semibold text-white mb-3 pb-2 border-b border-zinc-700 truncate">
+          {point.keyword}
         </p>
-        <div className="space-y-1 text-xs">
-          <p className="text-gray-700 dark:text-gray-300">
-            <span className="font-medium">Quality Score:</span> {data.qualityScore}/10
-          </p>
-          <p className="text-gray-700 dark:text-gray-300">
-            <span className="font-medium">CPA:</span> ${data.cpa.toFixed(2)}
-          </p>
-          <p className="text-gray-700 dark:text-gray-300">
-            <span className="font-medium">Spend:</span> ${data.spend.toFixed(2)}
-          </p>
-          <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-            <p
-              className={`text-xs font-medium ${
-                data.expectedCTR === "ABOVE_AVERAGE"
-                  ? "text-green-600 dark:text-green-400"
-                  : data.expectedCTR === "BELOW_AVERAGE"
-                    ? "text-red-600 dark:text-red-400"
-                    : "text-yellow-600 dark:text-yellow-400"
-              }`}
-            >
-              Expected CTR: {data.expectedCTR}
-            </p>
-            <p
-              className={`text-xs font-medium ${
-                data.adRelevance === "ABOVE_AVERAGE"
-                  ? "text-green-600 dark:text-green-400"
-                  : data.adRelevance === "BELOW_AVERAGE"
-                    ? "text-red-600 dark:text-red-400"
-                    : "text-yellow-600 dark:text-yellow-400"
-              }`}
-            >
-              Ad Relevance: {data.adRelevance}
-            </p>
-            <p
-              className={`text-xs font-medium ${
-                data.landingPageExperience === "ABOVE_AVERAGE"
-                  ? "text-green-600 dark:text-green-400"
-                  : data.landingPageExperience === "BELOW_AVERAGE"
-                    ? "text-red-600 dark:text-red-400"
-                    : "text-yellow-600 dark:text-yellow-400"
-              }`}
-            >
-              Landing Page: {data.landingPageExperience}
-            </p>
+        <div className="space-y-2 mb-3">
+          <div className="flex justify-between items-center">
+            <span className="text-xs text-zinc-400">Quality Score</span>
+            <span className={cn(
+              "text-sm font-bold tabular-nums",
+              point.qualityScore >= 7 ? "text-emerald-400" : point.qualityScore >= 5 ? "text-amber-400" : "text-red-400"
+            )}>
+              {point.qualityScore}/10
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-xs text-zinc-400">CPA</span>
+            <span className="text-sm font-semibold text-white tabular-nums">${point.cpa.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="text-xs text-zinc-400">Spend</span>
+            <span className="text-sm font-semibold text-white tabular-nums">${point.spend.toFixed(0)}</span>
+          </div>
+        </div>
+        <div className="pt-2 border-t border-zinc-700 space-y-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs text-zinc-400">Expected CTR</span>
+            {getStatusIcon(point.expectedCTR)}
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs text-zinc-400">Ad Relevance</span>
+            {getStatusIcon(point.adRelevance)}
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs text-zinc-400">Landing Page</span>
+            {getStatusIcon(point.landingPageExperience)}
           </div>
         </div>
       </div>
@@ -129,76 +138,81 @@ export function QualityScoreMatrix({ data }: QualityScoreMatrixProps) {
   };
 
   return (
-    <Card className="bg-white dark:bg-white/5 border border-gray-200 dark:border-gray-800">
-      <CardHeader className="pb-4">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+    <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden h-full">
+      {/* Header */}
+      <div className="p-5 pb-4 border-b border-zinc-100 dark:border-zinc-800">
+        <div className="flex items-start justify-between gap-4 mb-4">
           <div>
-            <CardTitle>Quality Score Matrix</CardTitle>
-            <CardDescription>
-              Keyword quality score vs CPA analysis (bubble size = spend)
-            </CardDescription>
-          </div>
-          <div className="flex gap-2 flex-wrap">
-            <button
-              onClick={() => setSelectedFilter(null)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                selectedFilter === null
-                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                  : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200"
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setSelectedFilter("below_average")}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                selectedFilter === "below_average"
-                  ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300"
-                  : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200"
-              }`}
-            >
-              Below Avg
-            </button>
-            <button
-              onClick={() => setSelectedFilter("high_spend_low_quality")}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                selectedFilter === "high_spend_low_quality"
-                  ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300"
-                  : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200"
-              }`}
-            >
-              Budget Bleeders
-            </button>
-            <button
-              onClick={() => setSelectedFilter("high_cpa")}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                selectedFilter === "high_cpa"
-                  ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300"
-                  : "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200"
-              }`}
-            >
-              High CPA
-            </button>
+            <h3 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
+              Quality Score Matrix
+            </h3>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
+              QS vs CPA distribution (bubble = spend)
+            </p>
           </div>
         </div>
-      </CardHeader>
 
-      <CardContent className="space-y-4">
-        {/* Chart */}
-        <div className="w-full h-[400px]">
+        {/* Filter Tabs */}
+        <div className="flex items-center gap-1 p-1 bg-zinc-100 dark:bg-zinc-800 rounded-lg w-fit">
+          {FILTERS.map((filter) => {
+            const isActive = selectedFilter === filter.id;
+            return (
+              <button
+                key={filter.id ?? "all"}
+                onClick={() => setSelectedFilter(filter.id)}
+                className={cn(
+                  "px-3 py-1.5 text-xs font-medium rounded-md transition-all",
+                  isActive
+                    ? "bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-sm"
+                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+                )}
+              >
+                {filter.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Stats Row */}
+      <div className="grid grid-cols-4 gap-px bg-zinc-100 dark:bg-zinc-800">
+        <div className="bg-white dark:bg-zinc-900 p-3">
+          <div className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Keywords</div>
+          <div className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 tabular-nums">{filteredData.length}</div>
+        </div>
+        <div className="bg-white dark:bg-zinc-900 p-3">
+          <div className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Avg QS</div>
+          <div className={cn(
+            "text-lg font-semibold tabular-nums",
+            stats.avgQS >= 7 ? "text-emerald-600 dark:text-emerald-400" : stats.avgQS >= 5 ? "text-amber-600 dark:text-amber-400" : "text-red-600 dark:text-red-400"
+          )}>
+            {stats.avgQS.toFixed(1)}
+          </div>
+        </div>
+        <div className="bg-white dark:bg-zinc-900 p-3">
+          <div className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Avg CPA</div>
+          <div className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 tabular-nums">${stats.avgCPA.toFixed(0)}</div>
+        </div>
+        <div className="bg-white dark:bg-zinc-900 p-3">
+          <div className="text-xs text-zinc-500 dark:text-zinc-400 font-medium">Issues</div>
+          <div className={cn(
+            "text-lg font-semibold tabular-nums",
+            stats.belowAvgCount > 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"
+          )}>
+            {stats.belowAvgCount}
+          </div>
+        </div>
+      </div>
+
+      {/* Chart */}
+      <div className="p-5">
+        <div className="w-full h-[280px]">
           <ResponsiveContainer width="100%" height="100%">
-            <ScatterChart
-              margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
-            >
-              <defs>
-                <linearGradient id="colorScatter" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#34a853" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#ea4335" stopOpacity={0.8} />
-                </linearGradient>
-              </defs>
+            <ScatterChart margin={{ top: 10, right: 10, bottom: 20, left: 10 }}>
               <CartesianGrid
                 strokeDasharray="3 3"
-                stroke="#e5e7eb"
+                stroke="#e4e4e7"
+                className="dark:stroke-zinc-800"
                 vertical={false}
               />
               <XAxis
@@ -206,28 +220,34 @@ export function QualityScoreMatrix({ data }: QualityScoreMatrixProps) {
                 dataKey="qualityScore"
                 domain={[1, 10]}
                 name="Quality Score"
-                label={{ value: "Quality Score (1-10)", offset: 10 }}
-                stroke="#6b7280"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fill: "#a1a1aa" }}
+                label={{ value: "Quality Score", position: "bottom", offset: 5, fontSize: 11, fill: "#71717a" }}
               />
               <YAxis
                 type="number"
                 dataKey="cpa"
                 name="CPA"
-                label={{ value: "CPA ($)", angle: -90, position: "insideLeft" }}
-                stroke="#6b7280"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fill: "#a1a1aa" }}
+                tickFormatter={(value) => `$${value}`}
+                width={45}
               />
               <ZAxis
                 type="number"
                 dataKey="spend"
-                range={[50, 400]}
+                range={[40, 300]}
                 name="Spend"
               />
-              <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0,0,0,0.1)" }} />
-              <Legend />
+              <ReferenceLine x={6} stroke="#d4d4d8" strokeDasharray="4 4" />
+              <ReferenceLine y={50} stroke="#d4d4d8" strokeDasharray="4 4" />
+              <Tooltip content={<CustomTooltip />} cursor={{ stroke: "#d4d4d8", strokeDasharray: "4 4" }} />
               <Scatter
                 name="Keywords"
                 data={filteredData}
-                fill="url(#colorScatter)"
+                fillOpacity={0.7}
               >
                 {filteredData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={getQualityColor(entry)} />
@@ -237,79 +257,22 @@ export function QualityScoreMatrix({ data }: QualityScoreMatrixProps) {
           </ResponsiveContainer>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-3">
-            <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">
-              Keywords Analyzed
-            </div>
-            <div className="text-lg font-semibold text-gray-900 dark:text-white">
-              {filteredData.length}
-            </div>
-          </div>
-          <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-3">
-            <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">
-              Avg Quality Score
-            </div>
-            <div className="text-lg font-semibold text-gray-900 dark:text-white">
-              {(
-                filteredData.reduce((sum, k) => sum + k.qualityScore, 0) /
-                (filteredData.length || 1)
-              ).toFixed(1)}
-              /10
-            </div>
-          </div>
-          <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-3">
-            <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">
-              Avg CPA
-            </div>
-            <div className="text-lg font-semibold text-gray-900 dark:text-white">
-              $
-              {(
-                filteredData.reduce((sum, k) => sum + k.cpa, 0) /
-                (filteredData.length || 1)
-              ).toFixed(0)}
-            </div>
-          </div>
-          <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-3">
-            <div className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1">
-              Total Spend
-            </div>
-            <div className="text-lg font-semibold text-gray-900 dark:text-white">
-              $
-              {(
-                filteredData.reduce((sum, k) => sum + k.spend, 0) / 1000
-              ).toFixed(1)}
-              k
-            </div>
-          </div>
-        </div>
-
         {/* Legend */}
-        <div className="bg-gray-50 dark:bg-gray-900/30 rounded-lg p-3 text-xs space-y-2">
-          <div className="font-semibold text-gray-900 dark:text-white mb-2">
-            Quality Component Status:
+        <div className="flex items-center justify-center gap-6 mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+          <div className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">All Above Avg</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#34a853" }} />
-            <span className="text-gray-600 dark:text-gray-400">
-              All components above average
-            </span>
+            <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">Mixed</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#fbbc04" }} />
-            <span className="text-gray-600 dark:text-gray-400">
-              Mixed component status
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#ea4335" }} />
-            <span className="text-gray-600 dark:text-gray-400">
-              One or more components below average
-            </span>
+            <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+            <span className="text-xs text-zinc-500 dark:text-zinc-400">Below Avg</span>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

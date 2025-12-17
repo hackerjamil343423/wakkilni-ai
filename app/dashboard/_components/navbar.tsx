@@ -1,76 +1,25 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogClose } from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator";
-import {
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import {
-  Brush,
-  HomeIcon,
-  LucideGitBranchPlus,
-  MonitorSmartphone,
-} from "lucide-react";
-import Link from "next/link";
+import { Menu } from "lucide-react";
 import { ReactNode } from "react";
+import MobileSidebar from "./mobile-sidebar";
 
 export default function DashboardTopNav({ children }: { children: ReactNode }) {
   return (
     <div className="flex flex-col">
       <header className="flex h-14 lg:h-[52px] items-center gap-4 border-b px-3">
-        <Dialog>
-          <SheetTrigger className="min-[1024px]:hidden p-2 transition">
-            <Link prefetch={true} href="/dashboard">
-              <span className="sr-only">Home</span>
-            </Link>
-          </SheetTrigger>
-          <SheetContent side="left">
-            <SheetHeader>
-              <Link prefetch={true} href="/">
-                <SheetTitle>Pass Builder</SheetTitle>
-              </Link>
-            </SheetHeader>
-            <div className="flex flex-col space-y-3 mt-[1rem]">
-              <DialogClose asChild>
-                <Link prefetch={true} href="/dashboard">
-                  <Button variant="outline" className="w-full">
-                    <HomeIcon className="mr-2 h-4 w-4" />
-                    Overview
-                  </Button>
-                </Link>
-              </DialogClose>
-              <DialogClose asChild>
-                <Link prefetch={true} href="/dashboard/create">
-                  <Button variant="outline" className="w-full">
-                    <Brush className="mr-2 h-4 w-4" />
-                    Create Pass
-                  </Button>
-                </Link>
-              </DialogClose>
-              <DialogClose asChild>
-                <Link prefetch={true} href="/dashboard/notifications">
-                  <Button variant="outline" className="w-full">
-                    <MonitorSmartphone className="mr-2 h-4 w-4" />
-                    Notifications
-                  </Button>
-                </Link>
-              </DialogClose>
-              <Separator className="my-3" />
-              <DialogClose asChild>
-                <Link prefetch={true} href="/dashboard/analytics">
-                  <Button variant="outline" className="w-full">
-                    <LucideGitBranchPlus className="mr-2 h-4 w-4" />
-                    Analytics
-                  </Button>
-                </Link>
-              </DialogClose>
-            </div>
-          </SheetContent>
-        </Dialog>
+        {/* Mobile Menu Trigger */}
+        <div className="min-[1024px]:hidden">
+          <MobileSidebar
+            trigger={
+              <Button variant="ghost" size="icon">
+                <Menu className="h-5 w-5" />
+                <span className="sr-only">Toggle menu</span>
+              </Button>
+            }
+          />
+        </div>
       </header>
       {children}
     </div>
