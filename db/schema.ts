@@ -83,3 +83,63 @@ export const subscription = pgTable("subscription", {
   customFieldData: text("customFieldData"), // JSON string
   userId: text("userId").references(() => user.id),
 });
+
+// Google Ads Account table - stores OAuth tokens and account metadata
+export const googleAdsAccount = pgTable("google_ads_account", {
+  id: text("id").primaryKey(),
+  userId: text("userId")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+
+  // Google Ads Identifiers
+  customerId: text("customerId").notNull(), // Google Ads Customer ID (10 digits)
+  loginCustomerId: text("loginCustomerId").notNull(), // Login Customer ID for API access (same as customerId for individual accounts)
+  accountName: text("accountName").notNull(), // Descriptive name from Google Ads
+  managerCustomerId: text("managerCustomerId"), // Optional MCC account ID
+
+  // OAuth Tokens
+  accessToken: text("accessToken").notNull(),
+  refreshToken: text("refreshToken").notNull(),
+  tokenExpiresAt: timestamp("tokenExpiresAt").notNull(),
+  scope: text("scope").notNull(),
+
+  // Account Status
+  status: text("status").notNull().default("active"), // active, disconnected, error
+  lastSyncedAt: timestamp("lastSyncedAt"), // Last successful data fetch
+  syncError: text("syncError"), // Last error message if any
+
+  // Metadata
+  currency: text("currency"), // Account currency code (USD, EUR, etc.)
+  timezone: text("timezone"), // Account timezone
+
+  // Timestamps
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+});
+
+// Google Ads Metrics Cache table - caches API responses to minimize API calls
+export const googleAdsMetricsCache = pgTable("google_ads_metrics_cache", {
+  id: text("id").primaryKey(),
+  accountId: text("accountId")
+    .notNull()
+    .references(() => googleAdsAccount.id, { onDelete: "cascade" }),
+
+  // Time Range
+  startDate: text("startDate").notNull(), // YYYY-MM-DD format
+  endDate: text("endDate").notNull(), // YYYY-MM-DD format
+
+  // Cached Data (JSON serialized)
+  dailyMetrics: text("dailyMetrics"), // DailyMetrics[] as JSON
+  campaigns: text("campaigns"), // Campaign[] as JSON
+  adGroups: text("adGroups"), // AdGroup[] as JSON
+  keywords: text("keywords"), // Keyword[] as JSON
+  geoData: text("geoData"), // GeoPerformance[] as JSON
+
+  // Cache Management
+  cacheKey: text("cacheKey").notNull().unique(), // Hash of accountId + date range
+  expiresAt: timestamp("expiresAt").notNull(), // TTL for cache invalidation
+
+  // Timestamps
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+});
