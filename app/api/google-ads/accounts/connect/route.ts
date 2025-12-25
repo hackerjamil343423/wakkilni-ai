@@ -3,9 +3,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { db } from "@/db";
 import { googleAdsAccount } from "@/db/schema";
-import { refreshAccessToken } from "@/lib/google-ads/oauth-client";
 import { eq, and } from "drizzle-orm";
-import { GoogleAdsApi } from "google-ads-api";
 
 /**
  * POST /api/google-ads/accounts/connect
@@ -31,13 +29,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-
-    // Initialize Google Ads API client
-    const client = new GoogleAdsApi({
-      client_id: process.env.GOOGLE_ADS_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_ADS_CLIENT_SECRET!,
-      developer_token: process.env.GOOGLE_ADS_DEVELOPER_TOKEN!,
-    });
 
     const connectedAccounts = [];
 
@@ -65,10 +56,7 @@ export async function POST(request: NextRequest) {
       }
 
       try {
-        // Get access token for this account using OAuth2Client
-        const tokens = await refreshAccessToken(refreshToken);
-
-        // Insert new account
+        // Insert new account - store refresh token, we'll get access token when needed
         const cleanCustomerId = customerId.replace(/-/g, ""); // Remove dashes
         await db.insert(googleAdsAccount).values({
           userId: session.user.id,
@@ -76,11 +64,9 @@ export async function POST(request: NextRequest) {
           loginCustomerId: cleanCustomerId, // For individual accounts, loginCustomerId equals customerId
           accountName: `Account ${customerId}`, // Placeholder, can be updated later
           refreshToken: refreshToken,
-          accessToken: tokens.access_token || null,
-          tokenExpiresAt: tokens.expiry_date
-            ? new Date(tokens.expiry_date)
-            : null,
-          scope: tokens.scope || null,
+          accessToken: null, // Will be refreshed when needed
+          tokenExpiresAt: null,
+          scope: "https://www.googleapis.com/auth/adwords",
         });
 
         connectedAccounts.push({

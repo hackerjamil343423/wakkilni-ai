@@ -20,7 +20,7 @@ import {
   SiTiktok,
 } from "@icons-pack/react-simple-icons";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 interface NavItem {
   label: string;
@@ -113,7 +113,6 @@ const navSections: NavSection[] = [
 
 export default function DashboardSideBar() {
   const pathname = usePathname();
-  const router = useRouter();
 
   return (
     <div className="min-[1024px]:block hidden w-64 border-r border-sidebar-border h-full bg-sidebar">
@@ -143,9 +142,10 @@ export default function DashboardSideBar() {
                 </div>
                 <div className="space-y-1 px-3">
                   {section.items.map((item) => (
-                    <div
+                    <Link
                       key={item.href}
-                      onClick={() => router.push(item.href)}
+                      href={item.href}
+                      prefetch={true}
                       className={clsx(
                         "flex items-center gap-3 w-full rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 hover:cursor-pointer group/item",
                         pathname === item.href
@@ -168,7 +168,7 @@ export default function DashboardSideBar() {
                       {pathname === item.href && (
                         <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                       )}
-                    </div>
+                    </Link>
                   ))}
                 </div>
                 {sectionIndex < navSections.length - 1 && (

@@ -4,6 +4,7 @@
  */
 
 import { OAuth2Client } from 'google-auth-library';
+import { withRetry } from './retry';
 
 /**
  * Create a configured OAuth2 client for Google Ads
@@ -39,8 +40,14 @@ export async function generateAuthUrl(state: string): Promise<string> {
  */
 export async function getTokensFromCode(code: string) {
   const client = createOAuth2Client();
-  const { tokens } = await client.getToken(code);
-  return tokens;
+
+  return withRetry(
+    async () => {
+      const { tokens } = await client.getToken(code);
+      return tokens;
+    },
+    { maxAttempts: 3, baseDelayMs: 1000 }
+  );
 }
 
 /**
@@ -55,7 +62,12 @@ export async function refreshAccessToken(refreshToken: string) {
   );
 
   client.setCredentials({ refresh_token: refreshToken });
-  const { credentials } = await client.refreshAccessToken();
 
-  return credentials;
+  return withRetry(
+    async () => {
+      const { credentials } = await client.refreshAccessToken();
+      return credentials;
+    },
+    { maxAttempts: 3, baseDelayMs: 1000 }
+  );
 }

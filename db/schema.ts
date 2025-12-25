@@ -4,6 +4,7 @@ import {
   pgTable,
   text,
   timestamp,
+  unique,
 } from "drizzle-orm/pg-core";
 
 // Better Auth Tables
@@ -84,6 +85,10 @@ export const subscription = pgTable("subscription", {
   userId: text("userId").references(() => user.id),
 });
 
+// ============================================================================
+// Google Ads Tables
+// ============================================================================
+
 // Google Ads Account table - stores OAuth tokens and account metadata
 export const googleAdsAccount = pgTable("google_ads_account", {
   id: text("id").primaryKey(),
@@ -98,10 +103,11 @@ export const googleAdsAccount = pgTable("google_ads_account", {
   managerCustomerId: text("managerCustomerId"), // Optional MCC account ID
 
   // OAuth Tokens
-  accessToken: text("accessToken").notNull(),
+  // FIXED: Made accessToken nullable to match SQL schema (tokens expire)
+  accessToken: text("accessToken"),
   refreshToken: text("refreshToken").notNull(),
-  tokenExpiresAt: timestamp("tokenExpiresAt").notNull(),
-  scope: text("scope").notNull(),
+  tokenExpiresAt: timestamp("tokenExpiresAt"),
+  scope: text("scope"),
 
   // Account Status
   status: text("status").notNull().default("active"), // active, disconnected, error
@@ -112,12 +118,342 @@ export const googleAdsAccount = pgTable("google_ads_account", {
   currency: text("currency"), // Account currency code (USD, EUR, etc.)
   timezone: text("timezone"), // Account timezone
 
+  // NEW: Multi-tenant settings
+  isPrimary: boolean("isPrimary").notNull().default(false), // User's default account
+  accountLabel: text("accountLabel"), // User-defined nickname
+
   // Timestamps
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+}, (table) => ({
+  // NEW: Unique constraint to prevent duplicate connections
+  uniqueUserCustomer: unique("unique_user_customer").on(table.userId, table.customerId),
+}));
+
+// ============================================================================
+// Structured Cache Tables
+// These tables replace the JSON blob approach for better querying
+// ============================================================================
+
+// Google Ads Cached Campaigns - stores campaign snapshots for analytics
+export const googleAdsCachedCampaigns = pgTable("google_ads_cached_campaigns", {
+  id: text("id").primaryKey(),
+  accountId: text("accountId")
+    .notNull()
+    .references(() => googleAdsAccount.id, { onDelete: "cascade" }),
+
+  // Campaign identifiers
+  campaignId: text("campaignId").notNull(), // Google Ads campaign ID
+  name: text("name").notNull(),
+
+  // Campaign attributes
+  type: text("type").notNull(), // SEARCH, DISPLAY, VIDEO, PERFORMANCE_MAX, etc.
+  status: text("status").notNull(), // ENABLED, PAUSED, REMOVED
+
+  // Budget & spend
+  budget: text("budget").notNull(), // Stored as text (decimal)
+  spend: text("spend").notNull(),
+
+  // Metrics
+  impressions: integer("impressions").notNull(),
+  clicks: integer("clicks").notNull(),
+  conversions: text("conversions").notNull(),
+  conversionValue: text("conversionValue").notNull(),
+
+  // Performance metrics
+  ctr: text("ctr").notNull(),
+  avgCpc: text("avgCpc").notNull(),
+  cpa: text("cpa").notNull(),
+  roas: text("roas").notNull(),
+
+  // Impression share (optional)
+  searchImpressionShare: text("searchImpressionShare"),
+  searchLostIsRank: text("searchLostIsRank"),
+  searchLostIsBudget: text("searchLostIsBudget"),
+
+  // Cache management
+  dataDate: timestamp("dataDate").notNull(), // Snapshot date
+  expiresAt: timestamp("expiresAt").notNull(),
+
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+}, (table) => ({
+  // Unique compound index for cache lookups
+  uniqueCacheKey: unique("unique_cache_key").on(table.accountId, table.campaignId, table.dataDate),
+}));
+
+// Google Ads Cached Ad Groups - stores ad group performance data
+export const googleAdsCachedAdGroups = pgTable("google_ads_cached_ad_groups", {
+  id: text("id").primaryKey(),
+  accountId: text("accountId")
+    .notNull()
+    .references(() => googleAdsAccount.id, { onDelete: "cascade" }),
+
+  // Ad group identifiers
+  adGroupId: text("adGroupId").notNull(),
+  campaignId: text("campaignId").notNull(), // Parent campaign
+  name: text("name").notNull(),
+  status: text("status").notNull(),
+
+  // Metrics
+  spend: text("spend").notNull(),
+  impressions: integer("impressions").notNull(),
+  clicks: integer("clicks").notNull(),
+  conversions: text("conversions").notNull(),
+
+  // Performance metrics
+  ctr: text("ctr").notNull(),
+  avgCpc: text("avgCpc").notNull(),
+  cpa: text("cpa").notNull(),
+
+  // Cache management
+  dataDate: timestamp("dataDate").notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+}, (table) => ({
+  uniqueCacheKey: unique("unique_cache_key").on(table.accountId, table.adGroupId, table.dataDate),
+}));
+
+// Google Ads Cached Keywords - stores keyword data with quality scores
+export const googleAdsCachedKeywords = pgTable("google_ads_cached_keywords", {
+  id: text("id").primaryKey(),
+  accountId: text("accountId")
+    .notNull()
+    .references(() => googleAdsAccount.id, { onDelete: "cascade" }),
+
+  // Keyword identifiers
+  keywordId: text("keywordId").notNull(),
+  adGroupId: text("adGroupId").notNull(),
+  text: text("text").notNull(),
+  matchType: text("matchType").notNull(), // EXACT, PHRASE, BROAD
+  status: text("status").notNull(),
+
+  // Quality Score components
+  qualityScore: integer("qualityScore"),
+  expectedCtr: text("expectedCtr"), // ABOVE_AVERAGE, AVERAGE, BELOW_AVERAGE
+  adRelevance: text("adRelevance"),
+  landingPageExperience: text("landingPageExperience"),
+
+  // Metrics
+  spend: text("spend").notNull(),
+  impressions: integer("impressions").notNull(),
+  clicks: integer("clicks").notNull(),
+  conversions: text("conversions").notNull(),
+
+  // Performance metrics
+  ctr: text("ctr").notNull(),
+  avgCpc: text("avgCpc").notNull(),
+  cpa: text("cpa").notNull(),
+
+  // Cache management
+  dataDate: timestamp("dataDate").notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+}, (table) => ({
+  uniqueCacheKey: unique("unique_cache_key").on(table.accountId, table.keywordId, table.dataDate),
+}));
+
+// Google Ads Cached Daily Metrics - stores daily aggregated metrics
+export const googleAdsCachedDailyMetrics = pgTable("google_ads_cached_daily_metrics", {
+  id: text("id").primaryKey(),
+  accountId: text("accountId")
+    .notNull()
+    .references(() => googleAdsAccount.id, { onDelete: "cascade" }),
+
+  // Date
+  date: timestamp("date").notNull(),
+
+  // Metrics
+  spend: text("spend").notNull(),
+  impressions: integer("impressions").notNull(),
+  clicks: integer("clicks").notNull(),
+  conversions: text("conversions").notNull(),
+  conversionValue: text("conversionValue").notNull(),
+
+  // Performance metrics
+  ctr: text("ctr").notNull(),
+  avgCpc: text("avgCpc").notNull(),
+  cpa: text("cpa").notNull(),
+  roas: text("roas").notNull(),
+  qualityScore: integer("qualityScore"),
+
+  // Impression share (optional)
+  searchImpressionShare: text("searchImpressionShare"),
+
+  // Cache management
+  expiresAt: timestamp("expiresAt").notNull(),
+
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+}, (table) => ({
+  uniqueCacheKey: unique("unique_cache_key").on(table.accountId, table.date),
+}));
+
+// Google Ads Cached Recommendations - stores Google Ads AI recommendations
+export const googleAdsCachedRecommendations = pgTable("google_ads_cached_recommendations", {
+  id: text("id").primaryKey(),
+  accountId: text("accountId")
+    .notNull()
+    .references(() => googleAdsAccount.id, { onDelete: "cascade" }),
+
+  // Recommendation identifiers
+  recommendationId: text("recommendationId").notNull(),
+  type: text("type").notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+
+  // Impact & estimates
+  impact: text("impact").notNull(), // HIGH, MEDIUM, LOW
+  estimatedConversions: text("estimatedConversions"),
+  estimatedClicks: integer("estimatedClicks"),
+  estimatedSpendReduction: text("estimatedSpendReduction"),
+
+  // Status
+  applyable: boolean("applyable").notNull(),
+  dismissed: boolean("dismissed").notNull().default(false),
+  appliedAt: timestamp("appliedAt"),
+
+  // Cache management
+  expiresAt: timestamp("expiresAt").notNull(),
+
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+}, (table) => ({
+  uniqueCacheKey: unique("unique_cache_key").on(table.accountId, table.recommendationId),
+}));
+
+// Google Ads Cached Geo Performance - stores geographic performance data
+export const googleAdsCachedGeoPerformance = pgTable("google_ads_cached_geo_performance", {
+  id: text("id").primaryKey(),
+  accountId: text("accountId")
+    .notNull()
+    .references(() => googleAdsAccount.id, { onDelete: "cascade" }),
+
+  // Geographic identifiers
+  countryCode: text("countryCode").notNull(),
+  countryName: text("countryName").notNull(),
+
+  // Metrics
+  spend: text("spend").notNull(),
+  impressions: integer("impressions").notNull(),
+  clicks: integer("clicks").notNull(),
+  conversions: text("conversions").notNull(),
+
+  // Performance metrics
+  roas: text("roas").notNull(),
+  ctr: text("ctr").notNull(),
+  cpa: text("cpa").notNull(),
+
+  // Cache management
+  dataDate: timestamp("dataDate").notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+}, (table) => ({
+  uniqueCacheKey: unique("unique_cache_key").on(table.accountId, table.countryCode, table.dataDate),
+}));
+
+// ============================================================================
+// SaaS Enhancement Tables
+// ============================================================================
+
+// Google Ads User Settings - stores user dashboard preferences
+export const googleAdsUserSettings = pgTable("google_ads_user_settings", {
+  id: text("id").primaryKey(),
+  userId: text("userId")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+
+  // Default dashboard settings
+  defaultAccountId: text("defaultAccountId").references(() => googleAdsAccount.id),
+  defaultDateRange: text("defaultDateRange").notNull().default("30d"), // 7d, 30d, 90d, custom
+
+  // Dashboard preferences (JSON for flexibility)
+  dashboardLayout: text("dashboardLayout"), // JSON: widget positions, sizes
+  kpiSelection: text("kpiSelection"), // JSON: which KPIs to show
+  chartPreferences: text("chartPreferences"), // JSON: chart colors, types
+
+  // Notification settings
+  emailAlertsEnabled: boolean("emailAlertsEnabled").notNull().default(true),
+  alertThresholds: text("alertThresholds"), // JSON: CPA, spend thresholds
+  weeklyReportEnabled: boolean("weeklyReportEnabled").notNull().default(true),
+
+  // Display settings
+  currencyDisplay: text("currencyDisplay").notNull().default("USD"),
+  timezone: text("timezone").notNull().default("UTC"),
+
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+}, (table) => ({
+  // One settings record per user
+  uniqueUser: unique("unique_user").on(table.userId),
+}));
+
+// Google Ads Activity Log - audit trail for compliance
+export const googleAdsActivityLog = pgTable("google_ads_activity_log", {
+  id: text("id").primaryKey(),
+  userId: text("userId")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  accountId: text("accountId")
+    .references(() => googleAdsAccount.id, { onDelete: "set null" }),
+
+  // Action details
+  action: text("action").notNull(), // ACCOUNT_CONNECTED, DATA_SYNCED, SETTINGS_UPDATED, etc.
+  resourceType: text("resourceType"), // CAMPAIGN, KEYWORD, ACCOUNT, etc.
+  resourceId: text("resourceId"), // ID of affected resource
+
+  // Changes
+  oldValue: text("oldValue"), // JSON: previous state
+  newValue: text("newValue"), // JSON: new state
+
+  // Request context
+  ipAddress: text("ipAddress"),
+  userAgent: text("userAgent"),
+
+  // Result
+  success: boolean("success").notNull(),
+  errorMessage: text("errorMessage"),
+
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
 });
 
+// Google Ads Account Snapshots - historical snapshots for trend analysis
+export const googleAdsAccountSnapshots = pgTable("google_ads_account_snapshots", {
+  id: text("id").primaryKey(),
+  accountId: text("accountId")
+    .notNull()
+    .references(() => googleAdsAccount.id, { onDelete: "cascade" }),
+
+  // Snapshot date
+  snapshotDate: timestamp("snapshotDate").notNull(),
+
+  // Aggregate metrics (account-level)
+  totalSpend: text("totalSpend").notNull(),
+  totalImpressions: integer("totalImpressions").notNull(),
+  totalClicks: integer("totalClicks").notNull(),
+  totalConversions: text("totalConversions").notNull(),
+  totalConversionValue: text("totalConversionValue").notNull(),
+
+  // Derived metrics
+  avgCtr: text("avgCtr").notNull(),
+  avgCpa: text("avgCpa").notNull(),
+  avgRoas: text("avgRoas").notNull(),
+
+  // Campaign counts
+  activeCampaigns: integer("activeCampaigns").notNull(),
+  pausedCampaigns: integer("pausedCampaigns").notNull(),
+
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+}, (table) => ({
+  uniqueSnapshot: unique("unique_snapshot").on(table.accountId, table.snapshotDate),
+}));
+
+// ============================================================================
+// Legacy Cache Table (will be dropped after migration)
+// ============================================================================
+
 // Google Ads Metrics Cache table - caches API responses to minimize API calls
+// DEPRECATED: This table uses JSON blobs and will be replaced by structured cache tables
 export const googleAdsMetricsCache = pgTable("google_ads_metrics_cache", {
   id: text("id").primaryKey(),
   accountId: text("accountId")

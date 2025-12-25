@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Sparkles, ShoppingBag, Store } from "lucide-react";
 import {
@@ -9,6 +10,8 @@ import {
   SiTiktok,
   SiSnapchat,
 } from "@icons-pack/react-simple-icons";
+import { PlatformCardMenu } from "./_components/platform-card-menu";
+import { PlatformDisconnectDialog } from "./_components/platform-disconnect-dialog";
 
 interface Integration {
   id: string;
@@ -75,9 +78,55 @@ const integrations: Integration[] = [
 ];
 
 export default function ConnectPlatformPage() {
+  const router = useRouter();
   const [platforms, setPlatforms] = useState<Integration[]>(integrations);
+  const [loading, setLoading] = useState(true);
+  const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false);
+  const [platformToDisconnect, setPlatformToDisconnect] = useState<Integration | null>(null);
+
+  // Fetch Google Ads connection status on mount
+  useEffect(() => {
+    const checkGoogleAdsConnection = async () => {
+      try {
+        const response = await fetch("/api/google-ads/accounts");
+        if (response.ok) {
+          const data = await response.json();
+          const hasAccounts = data.accounts && data.accounts.length > 0;
+
+          setPlatforms((prev) =>
+            prev.map((platform) =>
+              platform.id === "google-ads"
+                ? { ...platform, connected: hasAccounts }
+                : platform
+            )
+          );
+        }
+      } catch (error) {
+        console.error("Error checking Google Ads connection:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkGoogleAdsConnection();
+  }, []);
 
   const handleConnect = (id: string) => {
+    // Special handling for Google Ads
+    if (id === "google-ads") {
+      const platform = platforms.find((p) => p.id === "google-ads");
+
+      if (platform?.connected) {
+        // Navigate to account management
+        router.push("/dashboard/google-ads/settings/accounts");
+      } else {
+        // Trigger OAuth flow
+        window.location.href = "/api/google-ads/oauth/authorize";
+      }
+      return;
+    }
+
+    // Default toggle behavior for other platforms
     setPlatforms((prev) =>
       prev.map((platform) =>
         platform.id === id
@@ -85,6 +134,40 @@ export default function ConnectPlatformPage() {
           : platform
       )
     );
+  };
+
+  const handleOpenDisconnectDialog = (platform: Integration) => {
+    setPlatformToDisconnect(platform);
+    setDisconnectDialogOpen(true);
+  };
+
+  const handleDisconnect = async () => {
+    if (!platformToDisconnect) return;
+
+    try {
+      // Platform-specific disconnect logic
+      if (platformToDisconnect.id === "google-ads") {
+        const response = await fetch("/api/google-ads/disconnect", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ all: true }),
+        });
+
+        if (response.ok) {
+          setPlatforms((prev) =>
+            prev.map((p) =>
+              p.id === platformToDisconnect.id ? { ...p, connected: false } : p
+            )
+          );
+        } else {
+          console.error("Failed to disconnect Google Ads");
+        }
+      }
+      // Add other platform disconnect handlers here as needed
+      // else if (platformToDisconnect.id === "meta-ads") { ... }
+    } catch (error) {
+      console.error("Error disconnecting platform:", error);
+    }
   };
 
   return (
@@ -108,6 +191,17 @@ export default function ConnectPlatformPage() {
                 : "hover:shadow-xl hover:border-primary/20"
             }`}
           >
+            {/* 3-dot menu for connected platforms */}
+            {platform.connected && !platform.disabled && (
+              <div className="absolute top-4 right-4">
+                <PlatformCardMenu
+                  platformId={platform.id}
+                  platformName={platform.name}
+                  onDisconnect={() => handleOpenDisconnectDialog(platform)}
+                />
+              </div>
+            )}
+
             <div className="flex items-start justify-between gap-4">
               {/* Icon and Content */}
               <div className="flex items-start gap-4 flex-1">
@@ -147,7 +241,9 @@ export default function ConnectPlatformPage() {
                     : "bg-black hover:bg-black/90 text-white dark:bg-white dark:text-black dark:hover:bg-white/90"
                 } ${platform.disabled && "cursor-not-allowed opacity-50"}`}
               >
-                {platform.connected ? "Connected" : "Connect"}
+                {platform.connected
+                  ? platform.id === "google-ads" ? "Manage" : "Connected"
+                  : "Connect"}
               </Button>
             </div>
           </div>
@@ -165,6 +261,17 @@ export default function ConnectPlatformPage() {
           </p>
         </div>
       </div>
+
+      {/* Disconnect Confirmation Dialog */}
+      {platformToDisconnect && (
+        <PlatformDisconnectDialog
+          open={disconnectDialogOpen}
+          onOpenChange={setDisconnectDialogOpen}
+          platformName={platformToDisconnect.name}
+          platformId={platformToDisconnect.id}
+          onConfirm={handleDisconnect}
+        />
+      )}
     </div>
   );
 }

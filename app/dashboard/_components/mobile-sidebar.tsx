@@ -20,7 +20,7 @@ import {
   SiTiktok,
 } from "@icons-pack/react-simple-icons";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
 
@@ -119,13 +119,7 @@ interface MobileSidebarProps {
 
 export default function MobileSidebar({ trigger }: MobileSidebarProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const [open, setOpen] = useState(false);
-
-  const handleNavigation = (href: string) => {
-    router.push(href);
-    setOpen(false); // Close sidebar after navigation
-  };
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -161,9 +155,11 @@ export default function MobileSidebar({ trigger }: MobileSidebarProps) {
                   </div>
                   <div className="space-y-1 px-3">
                     {section.items.map((item) => (
-                      <div
+                      <Link
                         key={item.href}
-                        onClick={() => handleNavigation(item.href)}
+                        href={item.href}
+                        prefetch={true}
+                        onClick={() => setOpen(false)}
                         className={clsx(
                           "flex items-center gap-3 w-full rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 hover:cursor-pointer group/item",
                           pathname === item.href
@@ -190,7 +186,7 @@ export default function MobileSidebar({ trigger }: MobileSidebarProps) {
                         {pathname === item.href && (
                           <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                         )}
-                      </div>
+                      </Link>
                     ))}
                   </div>
                   {sectionIndex < navSections.length - 1 && (

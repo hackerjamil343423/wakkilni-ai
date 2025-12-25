@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, useTransition } from "react";
 import { DashboardHeader } from "./_components/dashboard-header";
 import { KPIScorecard } from "./_components/kpi-scorecard";
 import { TrendAnalysisChart } from "./_components/trend-analysis-chart";
@@ -14,27 +13,37 @@ import { GeoPerformanceMap } from "./_components/geo-performance-map";
 import { DaypartingHeatmap } from "./_components/dayparting-heatmap";
 import { RecommendationsFeed } from "./_components/recommendations-feed";
 import { AudienceDemographics } from "./_components/audience-demographics";
-import { ConnectAccountPrompt } from "./_components/connect-account-prompt";
-import { ConnectionStatus } from "./_components/connection-status";
 import {
-  useCampaigns,
-  useDailyMetrics,
-  useKeywords,
-  useRecommendations,
-  useGeoPerformance,
-  useGoogleAdsConnection,
-} from "@/lib/google-ads/hooks/useGoogleAds";
-import {
+  generateDailyMetrics,
+  generateCampaigns,
   generateAdGroups,
+  generateKeywords,
   generateSearchTerms,
   generateAssetGroups,
   generateListingGroups,
   generateVideoMetrics,
   generateDemographics,
+  generateGeoData,
   generateHourlyData,
+  generateRecommendations,
   generateQualityScoreMatrix,
 } from "./mock-data";
-import { DashboardFilters } from "./types";
+import {
+  Campaign,
+  AdGroup,
+  Keyword,
+  SearchTerm,
+  AssetGroup,
+  ListingGroup,
+  VideoPerformance,
+  DemographicPerformance,
+  GeoPerformance,
+  HourlyPerformance,
+  QualityScoreDataPoint,
+  Recommendation,
+  DailyMetrics,
+  DashboardFilters,
+} from "./types";
 import {
   BarChart3,
   Search,
@@ -51,6 +60,7 @@ interface Tab {
   id: TabId;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  badge?: number;
 }
 
 const TABS: Tab[] = [
@@ -63,8 +73,9 @@ const TABS: Tab[] = [
 ];
 
 export default function GoogleAdsDashboard() {
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabId>("overview");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isPending, startTransition] = useTransition();
   const [filters, setFilters] = useState<DashboardFilters>({
     dateRange: {
       startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
@@ -74,105 +85,111 @@ export default function GoogleAdsDashboard() {
     campaignStatuses: [],
   });
 
-  // Connection management
-  const { connected, activeCustomerId, loading: connectionLoading } = useGoogleAdsConnection();
+  // Mock Data State
+  const [dailyMetrics, setDailyMetrics] = useState<DailyMetrics[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [adGroups, setAdGroups] = useState<AdGroup[]>([]);
+  const [keywords, setKeywords] = useState<Keyword[]>([]);
+  const [searchTerms, setSearchTerms] = useState<SearchTerm[]>([]);
+  const [assetGroups, setAssetGroups] = useState<AssetGroup[]>([]);
+  const [listingGroups, setListingGroups] = useState<ListingGroup[]>([]);
+  const [videos, setVideos] = useState<VideoPerformance[]>([]);
+  const [demographics, setDemographics] = useState<DemographicPerformance[]>([]);
+  const [geoData, setGeoData] = useState<GeoPerformance[]>([]);
+  const [hourlyData, setHourlyData] = useState<HourlyPerformance[]>([]);
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [qualityScoreMatrix, setQualityScoreMatrix] = useState<
+    QualityScoreDataPoint[]
+  >([]);
 
-  // Fetch data from API (only when connected and activeCustomerId is set)
-  const {
-    data: campaigns,
-    loading: campaignsLoading,
-    refetch: refetchCampaigns
-  } = useCampaigns({
-    customerId: activeCustomerId || "",
-    startDate: filters.dateRange.startDate,
-    endDate: filters.dateRange.endDate,
-    enabled: connected && !!activeCustomerId,
-  });
-
-  const {
-    data: dailyMetrics,
-    loading: metricsLoading,
-    refetch: refetchMetrics
-  } = useDailyMetrics({
-    customerId: activeCustomerId || "",
-    startDate: filters.dateRange.startDate,
-    endDate: filters.dateRange.endDate,
-    enabled: connected && !!activeCustomerId,
-  });
-
-  const {
-    data: keywords,
-    loading: keywordsLoading,
-    refetch: refetchKeywords
-  } = useKeywords({
-    customerId: activeCustomerId || "",
-    startDate: filters.dateRange.startDate,
-    endDate: filters.dateRange.endDate,
-    enabled: connected && !!activeCustomerId,
-  });
-
-  const {
-    data: recommendations,
-    loading: recommendationsLoading,
-    refetch: refetchRecommendations,
-    applyRecommendation
-  } = useRecommendations(activeCustomerId || "", connected && !!activeCustomerId);
-
-  const {
-    data: geoData,
-    loading: geoLoading,
-    refetch: refetchGeo
-  } = useGeoPerformance({
-    customerId: activeCustomerId || "",
-    startDate: filters.dateRange.startDate,
-    endDate: filters.dateRange.endDate,
-    enabled: connected && !!activeCustomerId,
-  });
-
-  // Generate mock data for features not yet implemented in API
-  const [adGroups, setAdGroups] = useState<any[]>([]);
-  const [searchTerms, setSearchTerms] = useState<any[]>([]);
-  const [assetGroups, setAssetGroups] = useState<any[]>([]);
-  const [listingGroups, setListingGroups] = useState<any[]>([]);
-  const [videos, setVideos] = useState<any[]>([]);
-  const [demographics, setDemographics] = useState<any[]>([]);
-  const [hourlyData, setHourlyData] = useState<any[]>([]);
-  const [qualityScoreMatrix, setQualityScoreMatrix] = useState<any[]>([]);
-
-  // Generate supplementary mock data when we have real campaign data
+  // Initialize Data - Optimized with deferred loading
   useEffect(() => {
-    if (campaigns.length > 0) {
-      const adGrps = generateAdGroups(campaigns);
-      const kws = keywords.length > 0 ? keywords : [];
-      const searchTermsList = generateSearchTerms(kws);
-      const assetGrps = generateAssetGroups(campaigns);
-      const listings = generateListingGroups(assetGrps);
-      const videosData = generateVideoMetrics();
-      const demosData = generateDemographics();
-      const hourlyDataList = generateHourlyData();
-      const qualityMatrix = generateQualityScoreMatrix();
+    const initializeData = () => {
+      setIsLoading(true);
+      try {
+        // Generate critical data immediately (above-the-fold content)
+        const daily = generateDailyMetrics(30);
+        const camps = generateCampaigns(10);
 
-      setAdGroups(adGrps);
-      setSearchTerms(searchTermsList);
-      setAssetGroups(assetGrps);
-      setListingGroups(listings);
-      setVideos(videosData);
-      setDemographics(demosData);
-      setHourlyData(hourlyDataList);
-      setQualityScoreMatrix(qualityMatrix);
-    }
-  }, [campaigns, keywords]);
+        setDailyMetrics(daily);
+        setCampaigns(camps);
+        setIsLoading(false);
+
+        // Defer non-critical data generation using useTransition
+        startTransition(() => {
+          if ('requestIdleCallback' in window) {
+            requestIdleCallback(() => {
+              const adGrps = generateAdGroups(camps);
+              const kws = generateKeywords(adGrps);
+              const searchTermsList = generateSearchTerms(kws);
+              const assetGrps = generateAssetGroups(camps);
+              const listings = generateListingGroups(assetGrps);
+              const videosData = generateVideoMetrics();
+              const demosData = generateDemographics();
+              const geoDataList = generateGeoData();
+              const hourlyDataList = generateHourlyData();
+              const recsData = generateRecommendations();
+              const qualityMatrix = generateQualityScoreMatrix();
+
+              setAdGroups(adGrps);
+              setKeywords(kws);
+              setSearchTerms(searchTermsList);
+              setAssetGroups(assetGrps);
+              setListingGroups(listings);
+              setVideos(videosData);
+              setDemographics(demosData);
+              setGeoData(geoDataList);
+              setHourlyData(hourlyDataList);
+              setRecommendations(recsData);
+              setQualityScoreMatrix(qualityMatrix);
+            });
+          } else {
+            // Fallback for browsers without requestIdleCallback
+            setTimeout(() => {
+              const adGrps = generateAdGroups(camps);
+              const kws = generateKeywords(adGrps);
+              const searchTermsList = generateSearchTerms(kws);
+              const assetGrps = generateAssetGroups(camps);
+              const listings = generateListingGroups(assetGrps);
+              const videosData = generateVideoMetrics();
+              const demosData = generateDemographics();
+              const geoDataList = generateGeoData();
+              const hourlyDataList = generateHourlyData();
+              const recsData = generateRecommendations();
+              const qualityMatrix = generateQualityScoreMatrix();
+
+              setAdGroups(adGrps);
+              setKeywords(kws);
+              setSearchTerms(searchTermsList);
+              setAssetGroups(assetGrps);
+              setListingGroups(listings);
+              setVideos(videosData);
+              setDemographics(demosData);
+              setGeoData(geoDataList);
+              setHourlyData(hourlyDataList);
+              setRecommendations(recsData);
+              setQualityScoreMatrix(qualityMatrix);
+            }, 0);
+          }
+        });
+      } catch (error) {
+        console.error("Error initializing dashboard data:", error);
+        setIsLoading(false);
+      }
+    };
+
+    initializeData();
+  }, []);
 
   const handleFiltersChange = (newFilters: DashboardFilters) => {
     setFilters(newFilters);
   };
 
   const handleRefresh = () => {
-    refetchCampaigns();
-    refetchMetrics();
-    refetchKeywords();
-    refetchRecommendations();
-    refetchGeo();
+    setIsLoading(true);
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 500);
   };
 
   const filteredCampaigns = campaigns.filter((campaign) => {
@@ -191,55 +208,21 @@ export default function GoogleAdsDashboard() {
     return true;
   });
 
+  // Count high-impact recommendations for badge
   const highImpactCount = recommendations.filter((r) => r.impact === "HIGH").length;
-
-  const isLoading = campaignsLoading || metricsLoading;
-
-  // Redirect to platform page if not connected
-  useEffect(() => {
-    if (!connectionLoading && !connected) {
-      router.push("/dashboard/connect-platform?source=google-ads");
-    }
-  }, [connectionLoading, connected, router]);
-
-  // Show loading while checking connection
-  if (connectionLoading) {
-    return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-300 border-t-zinc-900 dark:border-zinc-700 dark:border-t-zinc-100" />
-          <p className="text-sm text-zinc-500">Checking connection...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Don't render if not connected (will redirect)
-  if (!connected) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
+      {/* Main Container */}
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {/* Header with Connection Status */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold">Google Ads Dashboard</h1>
-            <ConnectionStatus
-              connected={connected}
-              customerId={activeCustomerId}
-              onRefresh={handleRefresh}
-            />
-          </div>
-          <DashboardHeader
-            onFiltersChange={handleFiltersChange}
-            isLoading={isLoading}
-            onRefresh={handleRefresh}
-          />
-        </div>
+        {/* Header */}
+        <DashboardHeader
+          onFiltersChange={handleFiltersChange}
+          isLoading={isLoading}
+          onRefresh={handleRefresh}
+        />
 
-        {/* Tab Navigation */}
+        {/* Tab Navigation - Minimal, Linear-style */}
         <div className="flex items-center gap-1 p-1 bg-zinc-100 dark:bg-zinc-900 rounded-lg w-fit">
           {TABS.map((tab) => {
             const Icon = tab.icon;
@@ -335,10 +318,7 @@ export default function GoogleAdsDashboard() {
 
               {/* Recommendations Tab */}
               {activeTab === "recommendations" && (
-                <RecommendationsFeed
-                  data={recommendations}
-                  onApply={applyRecommendation}
-                />
+                <RecommendationsFeed data={recommendations} />
               )}
             </>
           )}

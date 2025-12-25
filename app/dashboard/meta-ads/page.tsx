@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect, useTransition } from "react";
 import { DashboardHeader } from "./_components/dashboard-header";
 import { KPIGrid } from "./_components/kpi-grid";
 import { MainChart } from "./_components/main-chart";
@@ -24,8 +24,9 @@ import {
 export default function MetaAdsDashboard() {
   const [isLoading, setIsLoading] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isPending, startTransition] = useTransition();
 
-  // Generate all data
+  // Critical data - generate immediately (above-the-fold content)
   const dailyMetrics = useMemo(
     () => generateDailyMetrics(30),
     [refreshKey]
@@ -36,35 +37,42 @@ export default function MetaAdsDashboard() {
     [dailyMetrics]
   );
 
-  const funnelData = useMemo(
-    () => generateFunnelData(dailyMetrics),
-    [dailyMetrics]
-  );
-
-  const frequencyData = useMemo(
-    () => generateFrequencyData(),
-    [refreshKey]
-  );
-
-  const creativeData = useMemo(
-    () => generateCreativeData(),
-    [refreshKey]
-  );
-
-  const campaignData = useMemo(
-    () => generateCampaignData(),
-    [refreshKey]
-  );
-
   const trendChartData = useMemo(
     () => generateTrendChartData(dailyMetrics),
     [dailyMetrics]
   );
 
-  const countryData = useMemo(
-    () => generateCountryData(),
-    [refreshKey]
-  );
+  // Non-critical data - defer generation
+  const [funnelData, setFunnelData] = useState<any>(null);
+  const [frequencyData, setFrequencyData] = useState<any>(null);
+  const [creativeData, setCreativeData] = useState<any>(null);
+  const [campaignData, setCampaignData] = useState<any>(null);
+  const [countryData, setCountryData] = useState<any>(null);
+
+  // Defer non-critical data generation
+  useEffect(() => {
+    startTransition(() => {
+      // Use requestIdleCallback to generate data when browser is idle
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => {
+          setFunnelData(generateFunnelData(dailyMetrics));
+          setFrequencyData(generateFrequencyData());
+          setCreativeData(generateCreativeData());
+          setCampaignData(generateCampaignData());
+          setCountryData(generateCountryData());
+        });
+      } else {
+        // Fallback for browsers without requestIdleCallback
+        setTimeout(() => {
+          setFunnelData(generateFunnelData(dailyMetrics));
+          setFrequencyData(generateFrequencyData());
+          setCreativeData(generateCreativeData());
+          setCampaignData(generateCampaignData());
+          setCountryData(generateCountryData());
+        }, 0);
+      }
+    });
+  }, [dailyMetrics, refreshKey]);
 
   // Handle refresh
   const handleRefresh = useCallback(() => {
@@ -93,20 +101,24 @@ export default function MetaAdsDashboard() {
         {/* Main Charts Row */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <MainChart data={trendChartData} />
-          <FunnelChart data={funnelData} />
+          {funnelData && <FunnelChart data={funnelData} />}
         </section>
 
         {/* Creative Performance Table */}
-        <section>
-          <CreativeTable data={creativeData} />
-        </section>
+        {creativeData && (
+          <section>
+            <CreativeTable data={creativeData} />
+          </section>
+        )}
 
         {/* Audience Intelligence & Performance */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <TopCampaigns data={campaignData} />
-          <TopCreatives data={creativeData} />
-          <TopCountries data={countryData} />
-        </section>
+        {(campaignData && creativeData && countryData) && (
+          <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <TopCampaigns data={campaignData} />
+            <TopCreatives data={creativeData} />
+            <TopCountries data={countryData} />
+          </section>
+        )}
 
         {/* Inline styles for animations */}
         <style jsx global>{`

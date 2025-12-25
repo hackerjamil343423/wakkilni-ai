@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { CommandBar } from '@/components/tiktok/command-bar';
 import { VitalSigns } from '@/components/tiktok/vital-signs';
 import { CreativeLab } from '@/components/tiktok/creative-lab';
@@ -21,11 +21,28 @@ export default function TikTokIntelligencePage() {
     from: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
     to: new Date(),
   });
+  const [isPending, startTransition] = useTransition();
 
-  // Generate mock data (in production, this would come from API)
-  const creatives = generateMockCreatives(12);
-  const demographics = generateMockDemographics();
-  const timeSeries = generateMockTimeSeries(7);
+  // Optimized: Generate critical data immediately, defer non-critical
+  const [timeSeries, setTimeSeries] = useState(() => generateMockTimeSeries(7));
+  const [creatives, setCreatives] = useState<any[]>([]);
+  const [demographics, setDemographics] = useState<any>(null);
+
+  useEffect(() => {
+    startTransition(() => {
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(() => {
+          setCreatives(generateMockCreatives(12));
+          setDemographics(generateMockDemographics());
+        });
+      } else {
+        setTimeout(() => {
+          setCreatives(generateMockCreatives(12));
+          setDemographics(generateMockDemographics());
+        }, 0);
+      }
+    });
+  }, []);
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
@@ -64,13 +81,13 @@ export default function TikTokIntelligencePage() {
         />
 
         {/* Creative Lab - Bento Grid */}
-        <CreativeLab creatives={creatives} />
+        {creatives.length > 0 && <CreativeLab creatives={creatives} />}
 
         {/* Ad Gallery */}
-        <AdGallery creatives={creatives} currency={currency} />
+        {creatives.length > 0 && <AdGallery creatives={creatives} currency={currency} />}
 
         {/* Demographics Heatmap */}
-        <DemographicsHeatmap demographics={demographics} currency={currency} />
+        {demographics && <DemographicsHeatmap demographics={demographics} currency={currency} />}
       </div>
     </div>
   );

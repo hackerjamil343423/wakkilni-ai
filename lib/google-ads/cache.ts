@@ -5,12 +5,12 @@
 
 import { db } from "@/db";
 import {
-  cachedCampaigns,
-  cachedAdGroups,
-  cachedKeywords,
-  cachedDailyMetrics,
-  cachedRecommendations,
-  cachedGeoPerformance,
+  googleAdsCachedCampaigns as cachedCampaigns,
+  googleAdsCachedAdGroups as cachedAdGroups,
+  googleAdsCachedKeywords as cachedKeywords,
+  googleAdsCachedDailyMetrics as cachedDailyMetrics,
+  googleAdsCachedRecommendations as cachedRecommendations,
+  googleAdsCachedGeoPerformance as cachedGeoPerformance,
 } from "@/db/schema";
 import { eq, and, gte, lte } from "drizzle-orm";
 import {

@@ -3,6 +3,7 @@ import { GoogleAdsApi } from "google-ads-api";
 import { db } from "@/db";
 import { googleAdsAccount } from "@/db/schema";
 import { getTokensFromCode } from "@/lib/google-ads/oauth-client";
+import { withRetry, isRetryableError } from "@/lib/google-ads/retry";
 
 /**
  * GET /api/google-ads/oauth/callback
@@ -43,8 +44,35 @@ export async function GET(request: NextRequest) {
       developer_token: process.env.GOOGLE_ADS_DEVELOPER_TOKEN!,
     });
 
-    // Fetch accessible customers using the refresh token
-    const customers = await client.listAccessibleCustomers(tokens.refresh_token);
+    // Fetch accessible customers using the refresh token with retry logic
+    let customersResponse;
+    try {
+      customersResponse = await withRetry(
+        () => client.listAccessibleCustomers(tokens.refresh_token),
+        {
+          maxAttempts: 3,
+          baseDelayMs: 1000, // 1s, 2s, 4s delays
+        }
+      );
+    } catch (error) {
+      console.error("Failed to list customers after retries:", error);
+      const errorType = isRetryableError(error) ? "network_error" : "list_customers_failed";
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/google-ads?error=${errorType}`
+      );
+    }
+
+    // Extract customer IDs from resource names (format: "customers/1234567890")
+    const customerResourceNames = customersResponse?.resource_names || customersResponse || [];
+    const customers = (Array.isArray(customerResourceNames) ? customerResourceNames : [])
+      .map((resourceName: string) => {
+        // Handle both "customers/123" format and plain "123" format
+        if (resourceName.includes('/')) {
+          return resourceName.split('/').pop() || '';
+        }
+        return resourceName.replace(/-/g, '');
+      })
+      .filter((id: string) => id.length > 0);
 
     if (!customers || customers.length === 0) {
       return NextResponse.redirect(

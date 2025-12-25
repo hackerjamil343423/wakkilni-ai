@@ -1,11 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  reactStrictMode: false,
+  /* Performance optimizations */
+  reactStrictMode: false, // Keep disabled for now, can enable after fixing errors
+
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false, // Changed: Fix TypeScript errors instead of hiding them
   },
+
+  // Image optimization settings
   images: {
     remotePatterns: [
       {
@@ -21,6 +24,55 @@ const nextConfig: NextConfig = {
         hostname: "images.unsplash.com",
       },
     ],
+    formats: ['image/avif', 'image/webp'], // Enable modern image formats
+  },
+
+  // Enable experimental optimizations
+  experimental: {
+    optimizePackageImports: [
+      'lucide-react',
+      '@radix-ui/react-icons',
+      'recharts',
+      'framer-motion',
+    ],
+  },
+
+  // Enable compression
+  compress: true,
+
+  // Disable powered by header
+  poweredByHeader: false,
+
+  // Webpack optimizations for better code splitting
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.optimization = {
+        ...config.optimization,
+        splitChunks: {
+          chunks: 'all',
+          cacheGroups: {
+            default: false,
+            vendors: false,
+            // Vendor chunk for node_modules
+            vendor: {
+              name: 'vendor',
+              chunks: 'all',
+              test: /node_modules/,
+              priority: 20,
+            },
+            // Common chunk for shared code
+            common: {
+              name: 'common',
+              minChunks: 2,
+              priority: 10,
+              reuseExistingChunk: true,
+              enforce: true,
+            },
+          },
+        },
+      };
+    }
+    return config;
   },
 };
 
