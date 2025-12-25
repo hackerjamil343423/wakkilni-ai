@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { GoogleAdsApi } from "google-ads-api";
 import { db } from "@/db";
 import { googleAdsAccount } from "@/db/schema";
 import { getTokensFromCode } from "@/lib/google-ads/oauth-client";
 import { withRetry, isRetryableError } from "@/lib/google-ads/retry";
+import { nanoid } from "nanoid";
 
 /**
  * GET /api/google-ads/oauth/callback
  * Handles OAuth callback from Google
+ *
+ * Flow:
+ * 1. Exchange authorization code for tokens
+ * 2. List accessible Google Ads accounts
+ * 3. If 1 account: auto-connect and redirect to dashboard
+ * 4. If multiple accounts: redirect to selection page
+ * 5. On error: redirect with error details
  */
 export async function GET(request: NextRequest) {
   try {
@@ -28,7 +35,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Exchange authorization code for tokens using OAuth2Client
+    // Step 1: Exchange authorization code for tokens using OAuth2Client
     const tokens = await getTokensFromCode(code);
 
     if (!tokens.refresh_token) {
@@ -37,92 +44,135 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Initialize Google Ads API client for listing customers
+    // Step 2: List accessible customers using google-ads-api library
+    // This is the most reliable method as it uses the official SDK
+    const { GoogleAdsApi } = await import("google-ads-api");
+
     const client = new GoogleAdsApi({
       client_id: process.env.GOOGLE_ADS_CLIENT_ID!,
       client_secret: process.env.GOOGLE_ADS_CLIENT_SECRET!,
       developer_token: process.env.GOOGLE_ADS_DEVELOPER_TOKEN!,
     });
 
-    // Fetch accessible customers using the refresh token with retry logic
-    let customersResponse;
+    let customers: string[] = [];
+
     try {
-      customersResponse = await withRetry(
-        () => client.listAccessibleCustomers(tokens.refresh_token),
+      // Use withRetry for robust error handling
+      const response = await withRetry(
+        async () => {
+          return await client.listAccessibleCustomers(tokens.refresh_token);
+        },
         {
-          maxAttempts: 3,
-          baseDelayMs: 1000, // 1s, 2s, 4s delays
+          maxAttempts: 5,
+          baseDelayMs: 2000,
+          maxDelayMs: 30000,
+          shouldRetry: (error: Error) => {
+            // Retry on network errors
+            const errorCode = (error as NodeJS.ErrnoException).code;
+            const isNetworkError = isRetryableError(error);
+
+            // Also retry on Google Ads API-specific errors
+            const isGoogleAdsError = error.message.includes('google-ads-api') ||
+                                    error.message.includes('Grpc') ||
+                                    error.message.includes('deadline');
+
+            return isNetworkError || isGoogleAdsError;
+          }
         }
       );
-    } catch (error) {
-      console.error("Failed to list customers after retries:", error);
-      const errorType = isRetryableError(error) ? "network_error" : "list_customers_failed";
+
+      // Extract customer IDs from resource names (format: "customers/1234567890")
+      const customerResourceNames = response?.resource_names || response || [];
+      customers = (Array.isArray(customerResourceNames) ? customerResourceNames : [])
+        .map((resourceName: string) => {
+          if (resourceName.includes('/')) {
+            return resourceName.split('/').pop() || '';
+          }
+          return resourceName.replace(/-/g, '');
+        })
+        .filter((id: string) => id.length > 0);
+
+    } catch (apiError) {
+      console.error("Failed to list customers from Google Ads API:", apiError);
+
+      const errorCode = (apiError as NodeJS.ErrnoException).code;
+      const errorMessage = apiError instanceof Error ? apiError.message : String(apiError);
+
+      console.error("API Error details:", {
+        code: errorCode,
+        message: errorMessage,
+        stack: apiError instanceof Error ? apiError.stack : undefined
+      });
+
+      // Map specific errors to user-friendly messages
+      const errorParam = errorCode === 'ECONNRESET' ? 'connection_reset' :
+                        errorCode === 'ETIMEDOUT' ? 'timeout' :
+                        errorCode === 'ECONNREFUSED' ? 'connection_refused' :
+                        'api_error';
+
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/google-ads?error=${errorType}`
+        `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/google-ads?error=${errorParam}`
       );
     }
-
-    // Extract customer IDs from resource names (format: "customers/1234567890")
-    const customerResourceNames = customersResponse?.resource_names || customersResponse || [];
-    const customers = (Array.isArray(customerResourceNames) ? customerResourceNames : [])
-      .map((resourceName: string) => {
-        // Handle both "customers/123" format and plain "123" format
-        if (resourceName.includes('/')) {
-          return resourceName.split('/').pop() || '';
-        }
-        return resourceName.replace(/-/g, '');
-      })
-      .filter((id: string) => id.length > 0);
 
     if (!customers || customers.length === 0) {
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/google-ads/connect/no-accounts`
+        `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/google-ads?error=no_accounts`
       );
     }
 
-    // If only one account, auto-connect it
+    // Step 3: If only one account, auto-connect it
     if (customers.length === 1) {
       const customerId = customers[0].replace(/-/g, "");
 
-      // Store tokens in database
-      await db.insert(googleAdsAccount).values({
-        userId: state, // User ID from state parameter
-        customerId,
-        loginCustomerId: customerId, // For individual accounts, loginCustomerId equals customerId
-        accountName: `Account ${customerId}`, // Placeholder name
-        refreshToken: tokens.refresh_token,
-        accessToken: tokens.access_token || null,
-        tokenExpiresAt: tokens.expires_in
-          ? new Date(Date.now() + tokens.expires_in * 1000)
-          : null,
-        scope: tokens.scope || null,
-      });
+      try {
+        // Store token in database
+        await db.insert(googleAdsAccount).values({
+          id: nanoid(),
+          userId: state,
+          customerId,
+          loginCustomerId: customerId,
+          accountName: `Account ${customerId}`,
+          refreshToken: tokens.refresh_token,
+          accessToken: tokens.access_token || null,
+          tokenExpiresAt: tokens.expiry_date
+            ? new Date(tokens.expiry_date)
+            : null,
+          scope: tokens.scope || null,
+        });
+      } catch (dbError) {
+        console.error("Failed to store account in database:", dbError);
+        return NextResponse.redirect(
+          `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/google-ads?error=database_error`
+        );
+      }
 
       // Redirect to dashboard with success
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/google-ads?connected=true&customerId=${customerId}`
+        `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/google-ads/settings/accounts?connected=true`
       );
     }
 
-    // Multiple accounts - redirect to selection page
-    // Store data in URL (encoded) for selection page
-    // Note: For production, use server-side session storage or encrypted tokens
+    // Step 4: Multiple accounts - redirect to selection page
     const selectionData = {
       userId: state,
       refreshToken: tokens.refresh_token,
       accessToken: tokens.access_token || null,
-      expiresIn: tokens.expires_in,
+      expiresIn: tokens.expiry_date
+        ? Math.floor((tokens.expiry_date - Date.now()) / 1000)
+        : null,
       scope: tokens.scope || null,
       customers: customers,
     };
 
-    // Encode data (in production, store server-side with random token)
+    // Encode data for URL transmission
     const encodedData = Buffer.from(JSON.stringify(selectionData)).toString('base64url');
 
     // Redirect to account selection page
     return NextResponse.redirect(
       `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/google-ads/connect/select-accounts?data=${encodedData}`
     );
+
   } catch (error) {
     console.error("Error handling OAuth callback:", error);
     return NextResponse.redirect(

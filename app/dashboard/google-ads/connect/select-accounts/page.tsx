@@ -116,11 +116,30 @@ export default function SelectAccountsPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to connect accounts");
+        // Provide more detailed error messages
+        let errorMessage = "Failed to connect accounts";
+
+        if (data.error) {
+          if (data.error.includes("ECONNRESET") || data.error.includes("connection")) {
+            errorMessage = "Connection was reset. This could be due to network issues. Please check your internet connection and try again.";
+          } else if (data.error.includes("ETIMEDOUT") || data.error.includes("timeout")) {
+            errorMessage = "Request timed out. The Google Ads API may be experiencing issues. Please try again in a moment.";
+          } else if (data.error.includes("Unauthorized")) {
+            errorMessage = "Authorization failed. Please try connecting again.";
+          } else {
+            errorMessage = data.message || data.error;
+          }
+        }
+
+        if (data.message) {
+          errorMessage = data.message;
+        }
+
+        throw new Error(errorMessage);
       }
 
-      // Redirect to dashboard on success
-      router.push("/dashboard/google-ads?connected=true");
+      // Redirect to settings page on success
+      router.push("/dashboard/google-ads/settings/accounts?connected=true");
     } catch (err) {
       console.error("Error connecting accounts:", err);
       setError(err instanceof Error ? err.message : "Failed to connect accounts");

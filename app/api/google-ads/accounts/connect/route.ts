@@ -4,96 +4,156 @@ import { headers } from "next/headers";
 import { db } from "@/db";
 import { googleAdsAccount } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
+import { nanoid } from "nanoid";
+
+interface ConnectAccountBody {
+  refreshToken: string;
+  customerIds: string[];
+}
+
+interface AccountResult {
+  customerId: string;
+  status: "connected" | "already_connected" | "failed";
+  error?: string;
+}
 
 /**
  * POST /api/google-ads/accounts/connect
- * Stores selected Google Ads accounts after OAuth authorization
+ *
+ * Stores selected Google Ads accounts after OAuth authorization.
+ * Handles multiple accounts, skips duplicates, and provides detailed results.
  */
 export async function POST(request: NextRequest) {
   try {
+    // Get authenticated session
     const session = await auth.api.getSession({ headers: await headers() });
 
-    if (!session) {
+    if (!session?.user?.id) {
       return NextResponse.json(
-        { error: "Unauthorized" },
+        { error: "Unauthorized", message: "You must be logged in to connect accounts" },
         { status: 401 }
       );
     }
 
-    const body = await request.json();
+    // Parse and validate request body
+    const body: ConnectAccountBody = await request.json();
     const { refreshToken, customerIds } = body;
 
-    if (!refreshToken || !customerIds || !Array.isArray(customerIds) || customerIds.length === 0) {
+    if (!refreshToken) {
       return NextResponse.json(
-        { error: "Refresh token and customer IDs are required" },
+        { error: "Bad Request", message: "Refresh token is required" },
         { status: 400 }
       );
     }
 
-    const connectedAccounts = [];
+    if (!Array.isArray(customerIds) || customerIds.length === 0) {
+      return NextResponse.json(
+        { error: "Bad Request", message: "At least one customer ID is required" },
+        { status: 400 }
+      );
+    }
 
-    // Store each selected account
-    for (const customerId of customerIds) {
-      // Check if account already exists for this user
-      const existing = await db
-        .select()
-        .from(googleAdsAccount)
-        .where(
-          and(
-            eq(googleAdsAccount.userId, session.user.id),
-            eq(googleAdsAccount.customerId, customerId)
-          )
-        )
-        .limit(1);
+    const results: AccountResult[] = [];
+    const now = new Date();
 
-      if (existing.length > 0) {
-        // Account already connected, skip
-        connectedAccounts.push({
-          customerId,
-          status: "already_connected",
+    // Process each account
+    for (const rawCustomerId of customerIds) {
+      // Clean customer ID (remove dashes and spaces)
+      const cleanCustomerId = rawCustomerId.replace(/[\s-]/g, "");
+
+      // Validate customer ID format (should be 10 digits)
+      if (!/^\d{10}$/.test(cleanCustomerId)) {
+        results.push({
+          customerId: rawCustomerId,
+          status: "failed",
+          error: `Invalid customer ID format: ${rawCustomerId}`,
         });
         continue;
       }
 
       try {
-        // Insert new account - store refresh token, we'll get access token when needed
-        const cleanCustomerId = customerId.replace(/-/g, ""); // Remove dashes
+        // Check if account already exists
+        const existing = await db
+          .select({ id: googleAdsAccount.id })
+          .from(googleAdsAccount)
+          .where(
+            and(
+              eq(googleAdsAccount.userId, session.user.id),
+              eq(googleAdsAccount.customerId, cleanCustomerId)
+            )
+          )
+          .limit(1);
+
+        if (existing.length > 0) {
+          results.push({
+            customerId: cleanCustomerId,
+            status: "already_connected",
+          });
+          continue;
+        }
+
+        // Insert new account
         await db.insert(googleAdsAccount).values({
+          id: nanoid(),
           userId: session.user.id,
           customerId: cleanCustomerId,
-          loginCustomerId: cleanCustomerId, // For individual accounts, loginCustomerId equals customerId
-          accountName: `Account ${customerId}`, // Placeholder, can be updated later
-          refreshToken: refreshToken,
-          accessToken: null, // Will be refreshed when needed
+          loginCustomerId: cleanCustomerId,
+          accountName: `Account ${cleanCustomerId}`,
+          refreshToken,
+          accessToken: null,
           tokenExpiresAt: null,
           scope: "https://www.googleapis.com/auth/adwords",
+          status: "active",
+          lastSyncedAt: now,
+          createdAt: now,
+          updatedAt: now,
         });
 
-        connectedAccounts.push({
-          customerId,
+        results.push({
+          customerId: cleanCustomerId,
           status: "connected",
         });
+
       } catch (error) {
-        console.error(`Error connecting account ${customerId}:`, error);
-        connectedAccounts.push({
-          customerId,
+        console.error(`Error connecting account ${cleanCustomerId}:`, error);
+        results.push({
+          customerId: cleanCustomerId,
           status: "failed",
           error: error instanceof Error ? error.message : "Unknown error",
         });
       }
     }
 
+    // Calculate summary statistics
+    const connectedCount = results.filter(r => r.status === "connected").length;
+    const alreadyConnectedCount = results.filter(r => r.status === "already_connected").length;
+    const failedCount = results.filter(r => r.status === "failed").length;
+
     return NextResponse.json({
       success: true,
-      message: `Successfully connected ${connectedAccounts.filter(a => a.status === "connected").length} account(s)`,
-      accounts: connectedAccounts,
+      message: `Connected ${connectedCount} account${connectedCount !== 1 ? 's' : ''}${
+        alreadyConnectedCount > 0 ? `, ${alreadyConnectedCount} already connected` : ''
+      }${failedCount > 0 ? `, ${failedCount} failed` : ''}`,
+      results: {
+        connected: connectedCount,
+        alreadyConnected: alreadyConnectedCount,
+        failed: failedCount,
+        total: results.length,
+      },
+      accounts: results,
     });
+
   } catch (error) {
-    console.error("Error connecting Google Ads accounts:", error);
+    console.error("Error connecting Google Ads accounts:", {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
     return NextResponse.json(
       {
+        success: false,
         error: "Failed to connect accounts",
-        message: error instanceof Error ? error.message : "Unknown error",
+        message: error instanceof Error ? error.message : "An unexpected error occurred",
       },
       { status: 500 }
     );
