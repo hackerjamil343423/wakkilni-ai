@@ -44,6 +44,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Store refresh token in typed variable after null check
+    const refreshToken: string = tokens.refresh_token;
+
     // Step 2: List accessible customers using google-ads-api library
     // This is the most reliable method as it uses the official SDK
     const { GoogleAdsApi } = await import("google-ads-api");
@@ -60,7 +63,7 @@ export async function GET(request: NextRequest) {
       // Use withRetry for robust error handling
       const response = await withRetry(
         async () => {
-          return await client.listAccessibleCustomers(tokens.refresh_token);
+          return await client.listAccessibleCustomers(refreshToken);
         },
         {
           maxAttempts: 5,
@@ -133,7 +136,7 @@ export async function GET(request: NextRequest) {
           customerId,
           loginCustomerId: customerId,
           accountName: `Account ${customerId}`,
-          refreshToken: tokens.refresh_token,
+          refreshToken: refreshToken,
           accessToken: tokens.access_token || null,
           tokenExpiresAt: tokens.expiry_date
             ? new Date(tokens.expiry_date)
@@ -156,7 +159,7 @@ export async function GET(request: NextRequest) {
     // Step 4: Multiple accounts - redirect to selection page
     const selectionData = {
       userId: state,
-      refreshToken: tokens.refresh_token,
+      refreshToken: refreshToken,
       accessToken: tokens.access_token || null,
       expiresIn: tokens.expiry_date
         ? Math.floor((tokens.expiry_date - Date.now()) / 1000)
