@@ -84,8 +84,8 @@ export async function refreshAccessToken(refreshToken: string): Promise<{
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: new URLSearchParams({
-      client_id: process.env.GOOGLE_CLIENT_ID!,
-      client_secret: process.env.CLIENT_SECRET!,
+      client_id: process.env.GOOGLE_ADS_CLIENT_ID!,
+      client_secret: process.env.GOOGLE_ADS_CLIENT_SECRET!,
       refresh_token: refreshToken,
       grant_type: "refresh_token",
     }),
