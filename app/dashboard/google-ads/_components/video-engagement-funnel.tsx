@@ -152,7 +152,9 @@ export function VideoEngagementFunnel({ data }: VideoEngagementFunnelProps) {
                 dataKey="name"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fontSize: 11, fill: "#a1a1aa", angle: -45, textAnchor: "end" }}
+                tick={{ fontSize: 11, fill: "#a1a1aa" }}
+                angle={-45}
+                textAnchor="end"
               />
               <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: "#a1a1aa" }} />
               <Tooltip

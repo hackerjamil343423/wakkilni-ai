@@ -5,7 +5,6 @@
 import { db } from "@/db";
 import { googleAdsAccount } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
-import { GoogleAdsApi } from "google-ads-api";
 
 /**
  * Get refresh token for a user and customer
@@ -65,27 +64,36 @@ export async function getAccessToken(
   // Check if access token is still valid
   if (
     tokenData.accessToken &&
-    tokenData.accessTokenExpiresAt &&
-    tokenData.accessTokenExpiresAt > new Date()
+    tokenData.tokenExpiresAt &&
+    tokenData.tokenExpiresAt > new Date()
   ) {
     return tokenData.accessToken;
   }
 
-  // Refresh the access token
-  const client = new GoogleAdsApi({
-    client_id: process.env.GOOGLE_ADS_CLIENT_ID!,
-    client_secret: process.env.GOOGLE_ADS_CLIENT_SECRET!,
-    developer_token: process.env.GOOGLE_ADS_DEVELOPER_TOKEN!,
+  // Refresh the access token using OAuth2
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: process.env.GOOGLE_ADS_CLIENT_ID!,
+      client_secret: process.env.GOOGLE_ADS_CLIENT_SECRET!,
+      refresh_token: tokenData.refreshToken,
+      grant_type: "refresh_token",
+    }),
   });
 
-  const newTokens = await client.refreshAccessToken(tokenData.refreshToken);
+  if (!response.ok) {
+    throw new Error("Failed to refresh access token");
+  }
+
+  const newTokens = await response.json();
 
   // Update database with new access token
   await db
     .update(googleAdsAccount)
     .set({
       accessToken: newTokens.access_token,
-      accessTokenExpiresAt: new Date(Date.now() + newTokens.expires_in * 1000),
+      tokenExpiresAt: new Date(Date.now() + newTokens.expires_in * 1000),
       updatedAt: new Date(),
     })
     .where(eq(googleAdsAccount.id, tokenData.id));

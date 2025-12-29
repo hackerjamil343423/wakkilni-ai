@@ -1,5 +1,7 @@
 import { uploadImageAssets } from "@/lib/upload-image";
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export const config = {
   api: { bodyParser: false }, // Disable default body parsing
@@ -7,6 +9,16 @@ export const config = {
 
 export async function POST(req: NextRequest) {
   try {
+    // Verify user is authenticated
+    const session = await auth.api.getSession({ headers: await headers() });
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Unauthorized", message: "You must be logged in to upload files" },
+        { status: 401 }
+      );
+    }
+
     // Parse the form data
     const formData = await req.formData();
     const file = formData.get("file") as File | null;

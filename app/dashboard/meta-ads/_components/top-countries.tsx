@@ -33,9 +33,10 @@ export function TopCountries({ data }: TopCountriesProps) {
     []
   );
 
-  const handleMetricChange = (metric: string) => {
-    setSelectedMetric(metric);
-    localStorage.setItem("meta-ads-top-countries-metric", metric);
+  const handleMetricChange = (metric: string | string[]) => {
+    const value = Array.isArray(metric) ? metric[0] : metric;
+    setSelectedMetric(value);
+    localStorage.setItem("meta-ads-top-countries-metric", value);
   };
 
   const sortedCountries = useMemo(() => {

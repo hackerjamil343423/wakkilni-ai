@@ -34,7 +34,7 @@ const postgresConfig = {
   keepalive: 60,
 
   // Enable SSL for Neon (required)
-  ssl: process.env.DATABASE_URL?.includes('sslmode=require') ? undefined : 'require',
+  ssl: process.env.DATABASE_URL?.includes('sslmode=require') ? undefined : 'require' as const,
 };
 
 /**

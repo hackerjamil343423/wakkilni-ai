@@ -31,9 +31,10 @@ export function TopCreatives({ data }: TopCreativesProps) {
     []
   );
 
-  const handleMetricChange = (metric: string) => {
-    setSelectedMetric(metric);
-    localStorage.setItem("meta-ads-top-creatives-metric", metric);
+  const handleMetricChange = (metric: string | string[]) => {
+    const value = Array.isArray(metric) ? metric[0] : metric;
+    setSelectedMetric(value);
+    localStorage.setItem("meta-ads-top-creatives-metric", value);
   };
 
   const sortedCreatives = useMemo(() => {

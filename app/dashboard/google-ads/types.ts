@@ -201,7 +201,8 @@ export interface DailyMetrics {
   avgCpc: number;
   cpa: number;
   roas: number;
-  qualityScore: number;
+  qualityScore?: number;
+  searchImpressionShare?: number;
 }
 
 export interface QualityScoreDataPoint {

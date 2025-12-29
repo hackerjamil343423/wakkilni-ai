@@ -36,9 +36,10 @@ export function TopCampaigns({ data }: TopCampaignsProps) {
     []
   );
 
-  const handleMetricChange = (metric: string) => {
-    setSelectedMetric(metric);
-    localStorage.setItem("meta-ads-top-campaigns-metric", metric);
+  const handleMetricChange = (metric: string | string[]) => {
+    const value = Array.isArray(metric) ? metric[0] : metric;
+    setSelectedMetric(value);
+    localStorage.setItem("meta-ads-top-campaigns-metric", value);
   };
 
   const sortedCampaigns = useMemo(() => {

@@ -8,16 +8,18 @@ import {
   compareSnapshots,
 } from "@/lib/google-ads/snapshots";
 import { GoogleAdsService } from "@/lib/google-ads/service";
+import { requireSnapshotOwnership } from "@/lib/google-ads/ownership";
 
 /**
  * GET /api/google-ads/snapshots
  * Get historical snapshots for an account
+ * Requires account ownership verification
  */
 export async function GET(request: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
 
-    if (!session) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -33,6 +35,9 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Verify account ownership for snapshots
+    await requireSnapshotOwnership(session.user.id, accountId);
 
     if (latest) {
       const snapshot = await getLatestSnapshot(accountId);
@@ -67,10 +72,19 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error fetching snapshots:", error);
+
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    if (errorMessage.includes("do not have access")) {
+      return NextResponse.json(
+        { error: "Forbidden", message: errorMessage },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json(
       {
         error: "Failed to fetch snapshots",
-        message: error instanceof Error ? error.message : "Unknown error",
+        message: errorMessage,
       },
       { status: 500 }
     );
@@ -80,12 +94,13 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/google-ads/snapshots
  * Create a manual snapshot for an account
+ * Requires account ownership verification
  */
 export async function POST(request: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
 
-    if (!session) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -98,6 +113,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Verify account ownership for snapshots
+    await requireSnapshotOwnership(session.user.id, accountId);
 
     // Fetch campaigns from Google Ads
     const googleAdsService = new GoogleAdsService(session.user.id);
@@ -134,10 +152,19 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error creating snapshot:", error);
+
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    if (errorMessage.includes("do not have access")) {
+      return NextResponse.json(
+        { error: "Forbidden", message: errorMessage },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json(
       {
         error: "Failed to create snapshot",
-        message: error instanceof Error ? error.message : "Unknown error",
+        message: errorMessage,
       },
       { status: 500 }
     );

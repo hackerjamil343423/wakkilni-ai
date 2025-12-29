@@ -175,8 +175,9 @@ export function KPIGrid({ dailyMetrics, metrics }: KPIGridProps) {
     []
   );
 
-  const handleKPIsChange = (kpis: string[]) => {
-    const selected = kpis.slice(0, 8);
+  const handleKPIsChange = (kpis: string | string[]) => {
+    const kpisArray = Array.isArray(kpis) ? kpis : [kpis];
+    const selected = kpisArray.slice(0, 8);
     setSelectedKPIs(selected);
     localStorage.setItem("meta-ads-kpi-grid-metrics", JSON.stringify(selected));
   };

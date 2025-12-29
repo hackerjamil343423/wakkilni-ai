@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 
 interface RecommendationsFeedProps {
   data: Recommendation[];
+  onApply?: (recommendationId: string) => Promise<boolean>;
 }
 
 const IMPACT_FILTERS = [
@@ -30,7 +31,7 @@ const IMPACT_FILTERS = [
   { id: "LOW", label: "Low" },
 ] as const;
 
-export function RecommendationsFeed({ data }: RecommendationsFeedProps) {
+export function RecommendationsFeed({ data, onApply }: RecommendationsFeedProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
   const [filterImpact, setFilterImpact] = useState<"all" | "HIGH" | "MEDIUM" | "LOW">("all");
@@ -47,9 +48,16 @@ export function RecommendationsFeed({ data }: RecommendationsFeedProps) {
     setDismissedIds(newDismissed);
   };
 
-  const handleApply = (id: string) => {
-    alert(`Applied recommendation ${id}. In production, this would trigger the API call.`);
-    handleDismiss(id);
+  const handleApply = async (id: string) => {
+    if (onApply) {
+      const success = await onApply(id);
+      if (success) {
+        handleDismiss(id);
+      }
+    } else {
+      alert(`Applied recommendation ${id}. In production, this would trigger the API call.`);
+      handleDismiss(id);
+    }
   };
 
   const getRecommendationIcon = (type: string) => {

@@ -70,7 +70,7 @@ export function AudienceDemographics({ data }: AudienceDemographicsProps) {
   );
 
   const getCPAColor = (cpa: number, avgCPA: number): string => {
-    const ratio = cpa / parseFloat(avgCPA);
+    const ratio = cpa / avgCPA;
     if (ratio <= 0.8) return "text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20";
     if (ratio <= 1) return "text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20";
     if (ratio <= 1.2) return "text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20";

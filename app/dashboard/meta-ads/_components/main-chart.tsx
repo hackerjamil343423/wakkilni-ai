@@ -90,14 +90,16 @@ export function MainChart({ data }: MainChartProps) {
     []
   );
 
-  const handlePrimaryChange = (metric: string) => {
-    setPrimaryMetric(metric);
-    localStorage.setItem("meta-ads-main-chart-primary", metric);
+  const handlePrimaryChange = (metric: string | string[]) => {
+    const value = Array.isArray(metric) ? metric[0] : metric;
+    setPrimaryMetric(value);
+    localStorage.setItem("meta-ads-main-chart-primary", value);
   };
 
-  const handleSecondaryChange = (metric: string) => {
-    setSecondaryMetric(metric);
-    localStorage.setItem("meta-ads-main-chart-secondary", metric);
+  const handleSecondaryChange = (metric: string | string[]) => {
+    const value = Array.isArray(metric) ? metric[0] : metric;
+    setSecondaryMetric(value);
+    localStorage.setItem("meta-ads-main-chart-secondary", value);
   };
 
   const getGradientColor = (metricId: string): string => {

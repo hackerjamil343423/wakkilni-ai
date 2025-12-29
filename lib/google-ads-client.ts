@@ -44,30 +44,25 @@ export async function fetchCustomerAccounts(
 > {
   try {
     const client = new GoogleAdsApi({
-      client_id: process.env.GOOGLE_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+      client_id: process.env.GOOGLE_ADS_CLIENT_ID!,
+      client_secret: process.env.GOOGLE_ADS_CLIENT_SECRET!,
       developer_token: process.env.GOOGLE_ADS_DEVELOPER_TOKEN!,
     });
 
-    // List accessible customers
-    const customerService = client.Customer({
-      customer_id: "0", // Use 0 to list all accessible customers
-      refresh_token: "", // Not needed for listing
-      access_token: accessToken,
-    });
-
-    const accessibleCustomers = await customerService.listAccessibleCustomers();
+    // List accessible customers using the API directly
+    const accessibleCustomers = await client.listAccessibleCustomers(accessToken);
 
     // Fetch details for each customer
+    const resourceNames = accessibleCustomers?.resource_names || [];
     const customerDetails = await Promise.all(
-      accessibleCustomers.resource_names.map(async (resourceName) => {
+      resourceNames.map(async (resourceName: string) => {
         const customerId = resourceName.split("/")[1];
 
         try {
           const customer = client.Customer({
             customer_id: customerId,
-            refresh_token: "",
-            access_token: accessToken,
+            refresh_token: accessToken, // Use access token as refresh for initial query
+            login_customer_id: customerId,
           });
 
           const [customerInfo] = await customer.query(`
@@ -81,15 +76,13 @@ export async function fetchCustomerAccounts(
             WHERE customer.id = ${customerId}
           `);
 
+          const customerData = customerInfo?.customer;
           return {
             customerId,
-            accountName:
-              customerInfo.customer.descriptive_name || `Account ${customerId}`,
-            currency: customerInfo.customer.currency_code || "USD",
-            timezone: customerInfo.customer.time_zone || "UTC",
-            managerCustomerId: customerInfo.customer.manager
-              ? customerId
-              : undefined,
+            accountName: customerData?.descriptive_name || `Account ${customerId}`,
+            currency: customerData?.currency_code || "USD",
+            timezone: customerData?.time_zone || "UTC",
+            managerCustomerId: customerData?.manager ? customerId : undefined,
           };
         } catch (error) {
           console.warn(
@@ -131,8 +124,12 @@ export async function refreshAccessToken(accountId: string): Promise<string> {
     }
 
     // Check if token is still valid
-    if (account.tokenExpiresAt > new Date()) {
+    if (account.tokenExpiresAt && account.tokenExpiresAt > new Date() && account.accessToken) {
       return account.accessToken;
+    }
+
+    if (!account.accessToken) {
+      throw new Error("No access token available. Please reconnect your account.");
     }
 
     // Refresh the token
@@ -178,15 +175,14 @@ async function createCustomerClient(accountId: string): Promise<Customer> {
     const accessToken = await refreshAccessToken(accountId);
 
     const client = new GoogleAdsApi({
-      client_id: process.env.GOOGLE_CLIENT_ID!,
-      client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+      client_id: process.env.GOOGLE_ADS_CLIENT_ID!,
+      client_secret: process.env.GOOGLE_ADS_CLIENT_SECRET!,
       developer_token: process.env.GOOGLE_ADS_DEVELOPER_TOKEN!,
     });
 
     return client.Customer({
       customer_id: account.customerId,
       refresh_token: account.refreshToken,
-      access_token: accessToken,
       login_customer_id: account.loginCustomerId,
     });
   } catch (error) {

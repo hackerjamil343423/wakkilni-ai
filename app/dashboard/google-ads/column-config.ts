@@ -3,7 +3,7 @@ export interface ColumnConfig {
   label: string;
   width?: string;
   sortable?: boolean;
-  format?: "currency" | "number" | "percentage" | "text";
+  format?: "currency" | "number" | "percentage" | "text" | "ratio";
   align?: "left" | "center" | "right";
 }
 

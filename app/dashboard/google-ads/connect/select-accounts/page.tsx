@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -17,7 +17,7 @@ interface OAuthSelectionData {
   customers: string[];
 }
 
-export default function SelectAccountsPage() {
+function SelectAccountsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -292,5 +292,22 @@ export default function SelectAccountsPage() {
         </CardFooter>
       </Card>
     </div>
+  );
+}
+
+export default function SelectAccountsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-zinc-500" />
+            <p className="text-sm text-zinc-500">Loading accounts...</p>
+          </div>
+        </div>
+      }
+    >
+      <SelectAccountsContent />
+    </Suspense>
   );
 }

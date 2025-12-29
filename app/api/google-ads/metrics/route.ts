@@ -2,16 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { GoogleAdsService } from "@/lib/google-ads/service";
+import { requireAccountOwnership } from "@/lib/google-ads/ownership";
 
 /**
  * GET /api/google-ads/metrics
  * Fetches aggregated daily metrics for the dashboard
+ * Requires account ownership verification
  */
 export async function GET(request: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
 
-    if (!session) {
+    if (!session?.user?.id) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -30,6 +32,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Verify account ownership
+    await requireAccountOwnership(session.user.id, customerId);
+
     const googleAdsService = new GoogleAdsService(session.user.id);
 
     const metrics = await googleAdsService.getDailyMetrics({
@@ -45,10 +50,19 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error fetching metrics:", error);
+
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    if (errorMessage.includes("do not have access")) {
+      return NextResponse.json(
+        { error: "Forbidden", message: errorMessage },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json(
       {
         error: "Failed to fetch metrics",
-        message: error instanceof Error ? error.message : "Unknown error",
+        message: errorMessage,
       },
       { status: 500 }
     );

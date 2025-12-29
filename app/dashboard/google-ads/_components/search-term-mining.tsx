@@ -170,11 +170,23 @@ export function SearchTermMining({ data }: SearchTermMiningProps) {
         <div className="w-full h-[400px] bg-zinc-50 dark:bg-zinc-800/30 rounded-xl overflow-hidden">
           <ResponsiveContainer width="100%" height="100%">
             <Treemap
-              data={treeData}
+              data={[treeData]}
               dataKey="value"
               stroke="#fff"
               fill="#3b82f6"
-              content={<CustomTreemapContent selectedTerms={selectedTerms} onSelect={toggleSelection} getRoasColor={getRoasColor} />}
+              content={
+                <CustomTreemapContent
+                  x={0}
+                  y={0}
+                  width={0}
+                  height={0}
+                  index={0}
+                  payload={{ name: "", children: [] }}
+                  selectedTerms={selectedTerms}
+                  onSelect={toggleSelection}
+                  getRoasColor={getRoasColor}
+                />
+              }
             >
               <Tooltip content={<CustomTooltip />} />
             </Treemap>

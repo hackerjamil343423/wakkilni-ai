@@ -91,10 +91,11 @@ export function FrequencyChart({ data }: FrequencyChartProps) {
     []
   );
 
-  const handleMetricsChange = (metrics: string[]) => {
+  const handleMetricsChange = (metrics: string | string[]) => {
+    const metricsArray = Array.isArray(metrics) ? metrics : [metrics];
     const selected = [
-      metrics[0] || selectedMetrics[0],
-      metrics[1] || selectedMetrics[1],
+      metricsArray[0] || selectedMetrics[0],
+      metricsArray[1] || selectedMetrics[1],
     ] as [string, string];
     setSelectedMetrics(selected);
     localStorage.setItem(

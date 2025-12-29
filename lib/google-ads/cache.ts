@@ -29,18 +29,21 @@ const DEFAULT_CACHE_DURATION = 60; // 1 hour
 const METRICS_CACHE_DURATION = 30; // 30 minutes for metrics
 const RECOMMENDATIONS_CACHE_DURATION = 120; // 2 hours for recommendations
 
+import { nanoid } from "nanoid";
+
 /**
  * Cache campaigns data
  */
 export async function cacheCampaigns(
-  customerId: string,
+  accountId: string,
   campaigns: Campaign[],
   dataDate: Date = new Date()
 ): Promise<void> {
   const expiresAt = new Date(Date.now() + DEFAULT_CACHE_DURATION * 60 * 1000);
 
   const values = campaigns.map((campaign) => ({
-    customerId,
+    id: nanoid(),
+    accountId,
     campaignId: campaign.id,
     name: campaign.name,
     type: campaign.type,
@@ -69,13 +72,13 @@ export async function cacheCampaigns(
  * Get cached campaigns
  */
 export async function getCachedCampaigns(
-  customerId: string,
+  accountId: string,
   dataDate?: Date
 ): Promise<Campaign[] | null> {
   const now = new Date();
 
   const conditions = [
-    eq(cachedCampaigns.customerId, customerId),
+    eq(cachedCampaigns.accountId, accountId),
     gte(cachedCampaigns.expiresAt, now),
   ];
 
@@ -121,13 +124,14 @@ export async function getCachedCampaigns(
  * Cache daily metrics
  */
 export async function cacheDailyMetrics(
-  customerId: string,
+  accountId: string,
   metrics: DailyMetrics[]
 ): Promise<void> {
   const expiresAt = new Date(Date.now() + METRICS_CACHE_DURATION * 60 * 1000);
 
   const values = metrics.map((metric) => ({
-    customerId,
+    id: nanoid(),
+    accountId,
     date: new Date(metric.date),
     spend: metric.spend.toString(),
     impressions: metric.impressions,
@@ -138,7 +142,6 @@ export async function cacheDailyMetrics(
     avgCpc: metric.avgCpc.toString(),
     cpa: metric.cpa.toString(),
     roas: metric.roas.toString(),
-    searchImpressionShare: metric.searchImpressionShare?.toString(),
     expiresAt,
   }));
 
@@ -149,7 +152,7 @@ export async function cacheDailyMetrics(
  * Get cached daily metrics
  */
 export async function getCachedDailyMetrics(
-  customerId: string,
+  accountId: string,
   startDate: Date,
   endDate: Date
 ): Promise<DailyMetrics[] | null> {
@@ -160,7 +163,7 @@ export async function getCachedDailyMetrics(
     .from(cachedDailyMetrics)
     .where(
       and(
-        eq(cachedDailyMetrics.customerId, customerId),
+        eq(cachedDailyMetrics.accountId, accountId),
         gte(cachedDailyMetrics.date, startDate),
         lte(cachedDailyMetrics.date, endDate),
         gte(cachedDailyMetrics.expiresAt, now)
@@ -180,6 +183,7 @@ export async function getCachedDailyMetrics(
     avgCpc: parseFloat(row.avgCpc),
     cpa: parseFloat(row.cpa),
     roas: parseFloat(row.roas),
+    qualityScore: row.qualityScore || undefined,
     searchImpressionShare: row.searchImpressionShare
       ? parseFloat(row.searchImpressionShare)
       : undefined,
@@ -190,7 +194,7 @@ export async function getCachedDailyMetrics(
  * Cache recommendations
  */
 export async function cacheRecommendations(
-  customerId: string,
+  accountId: string,
   recommendations: Recommendation[]
 ): Promise<void> {
   const expiresAt = new Date(
@@ -198,7 +202,8 @@ export async function cacheRecommendations(
   );
 
   const values = recommendations.map((rec) => ({
-    customerId,
+    id: nanoid(),
+    accountId,
     recommendationId: rec.id,
     type: rec.type,
     title: rec.title,
@@ -217,7 +222,7 @@ export async function cacheRecommendations(
  * Get cached recommendations
  */
 export async function getCachedRecommendations(
-  customerId: string
+  accountId: string
 ): Promise<Recommendation[] | null> {
   const now = new Date();
 
@@ -226,7 +231,7 @@ export async function getCachedRecommendations(
     .from(cachedRecommendations)
     .where(
       and(
-        eq(cachedRecommendations.customerId, customerId),
+        eq(cachedRecommendations.accountId, accountId),
         gte(cachedRecommendations.expiresAt, now),
         eq(cachedRecommendations.dismissed, false)
       )
@@ -269,21 +274,21 @@ export async function clearExpiredCache(): Promise<void> {
 }
 
 /**
- * Invalidate all cache for a customer
+ * Invalidate all cache for an account
  */
-export async function invalidateCustomerCache(customerId: string): Promise<void> {
+export async function invalidateCustomerCache(accountId: string): Promise<void> {
   await Promise.all([
-    db.delete(cachedCampaigns).where(eq(cachedCampaigns.customerId, customerId)),
-    db.delete(cachedAdGroups).where(eq(cachedAdGroups.customerId, customerId)),
-    db.delete(cachedKeywords).where(eq(cachedKeywords.customerId, customerId)),
+    db.delete(cachedCampaigns).where(eq(cachedCampaigns.accountId, accountId)),
+    db.delete(cachedAdGroups).where(eq(cachedAdGroups.accountId, accountId)),
+    db.delete(cachedKeywords).where(eq(cachedKeywords.accountId, accountId)),
     db
       .delete(cachedDailyMetrics)
-      .where(eq(cachedDailyMetrics.customerId, customerId)),
+      .where(eq(cachedDailyMetrics.accountId, accountId)),
     db
       .delete(cachedRecommendations)
-      .where(eq(cachedRecommendations.customerId, customerId)),
+      .where(eq(cachedRecommendations.accountId, accountId)),
     db
       .delete(cachedGeoPerformance)
-      .where(eq(cachedGeoPerformance.customerId, customerId)),
+      .where(eq(cachedGeoPerformance.accountId, accountId)),
   ]);
 }

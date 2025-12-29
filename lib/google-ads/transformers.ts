@@ -216,15 +216,19 @@ export function transformGeoPerformance(data: any): GeoPerformance {
   // Map country criterion ID to country code and name
   const { countryCode, countryName } = getCountryInfo(geoView.country_criterion_id);
 
+  const spend = microsToValue(metrics.cost_micros || 0);
+  const conversions = parseFloat(metrics.conversions || "0");
+
   return {
     countryCode,
     countryName,
-    spend: microsToValue(metrics.cost_micros || 0),
+    spend,
     impressions: parseInt(metrics.impressions || "0"),
     clicks: parseInt(metrics.clicks || "0"),
-    conversions: parseFloat(metrics.conversions || "0"),
+    conversions,
     roas: parseFloat(metrics.value_per_cost || "0"),
     ctr: decimalToPercentage(metrics.ctr || 0),
+    cpa: conversions > 0 ? spend / conversions : 0,
   };
 }
 

@@ -4,6 +4,8 @@ import { googleAdsAccount } from "@/db/schema";
 import { getTokensFromCode } from "@/lib/google-ads/oauth-client";
 import { withRetry, isRetryableError } from "@/lib/google-ads/retry";
 import { nanoid } from "nanoid";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 /**
  * GET /api/google-ads/oauth/callback
@@ -32,6 +34,18 @@ export async function GET(request: NextRequest) {
     if (!code || !state) {
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/google-ads?error=missing_parameters`
+      );
+    }
+
+    // Validate state parameter matches authenticated user (CSRF protection)
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user?.id || session.user.id !== state) {
+      console.error("OAuth state mismatch - potential CSRF attack", {
+        sessionUserId: session?.user?.id,
+        stateUserId: state,
+      });
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/google-ads?error=invalid_state`
       );
     }
 
