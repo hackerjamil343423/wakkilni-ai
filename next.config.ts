@@ -4,6 +4,9 @@ const nextConfig: NextConfig = {
   /* Performance optimizations */
   reactStrictMode: false, // Keep disabled for now, can enable after fixing errors
 
+  // Enable standalone output for Docker/container deployments
+  output: 'standalone',
+
   typescript: {
     ignoreBuildErrors: false, // Changed: Fix TypeScript errors instead of hiding them
   },
@@ -47,37 +50,6 @@ const nextConfig: NextConfig = {
   // Disable powered by header
   poweredByHeader: false,
 
-  // Webpack optimizations for better code splitting
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      config.optimization = {
-        ...config.optimization,
-        splitChunks: {
-          chunks: 'all',
-          cacheGroups: {
-            default: false,
-            vendors: false,
-            // Vendor chunk for node_modules
-            vendor: {
-              name: 'vendor',
-              chunks: 'all',
-              test: /node_modules/,
-              priority: 20,
-            },
-            // Common chunk for shared code
-            common: {
-              name: 'common',
-              minChunks: 2,
-              priority: 10,
-              reuseExistingChunk: true,
-              enforce: true,
-            },
-          },
-        },
-      };
-    }
-    return config;
-  },
 };
 
 export default nextConfig;
