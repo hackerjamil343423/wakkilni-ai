@@ -118,7 +118,7 @@ export default function DashboardSideBar() {
         <nav className="flex flex-col h-full w-full">
           <div className="flex-1 w-full overflow-y-auto py-2">
             {navSections.map((section, sectionIndex) => (
-              <div key={section.title} className="py-3">
+              <div key={section.title} className="py-2">
                 <div className="px-5 mb-2">
                   <h3 className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-[0.15em]">
                     {section.title}
@@ -166,13 +166,13 @@ export default function DashboardSideBar() {
                   })}
                 </div>
                 {sectionIndex < navSections.length - 1 && (
-                  <div className="mx-5 mt-4 border-t border-sidebar-border/50" />
+                  <div className="mx-5 mt-3 border-t border-sidebar-border/50" />
                 )}
               </div>
             ))}
           </div>
 
-          <div className="w-full border-t border-sidebar-border/50 px-3 py-4">
+          <div className="w-full shrink-0 border-t border-sidebar-border/50 px-3 py-3">
             <UserProfile />
           </div>
         </nav>

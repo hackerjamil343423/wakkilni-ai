@@ -199,7 +199,7 @@ function SettingsContent() {
   };
   if (loading) {
     return (
-      <div className="flex flex-col gap-6 p-6">
+      <div className="flex flex-col gap-6 px-6 py-4">
         {/* Header Skeleton */}
         <div>
           <Skeleton className="h-9 w-32 mb-2 bg-gray-200 dark:bg-gray-800" />
@@ -281,7 +281,7 @@ function SettingsContent() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-6 px-6 py-4">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>

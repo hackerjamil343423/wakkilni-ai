@@ -8,7 +8,7 @@ import MobileSidebar from "./mobile-sidebar";
 export default function DashboardTopNav({ children }: { children: ReactNode }) {
   return (
     <div className="flex flex-col">
-      <header className="flex h-14 lg:h-[52px] items-center gap-4 border-b px-3">
+      <header className="flex h-12 items-center gap-4 border-b px-3">
         {/* Mobile Menu Trigger */}
         <div className="min-[1024px]:hidden">
           <MobileSidebar
