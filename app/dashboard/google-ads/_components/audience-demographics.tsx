@@ -62,12 +62,16 @@ export function AudienceDemographics({ data }: AudienceDemographicsProps) {
 
   // Find best and worst performing age groups
   const ageArray = Object.entries(ageGroupMetrics);
-  const bestPerformer = ageArray.reduce((best, current) =>
-    current[1].cpa < best[1].cpa ? current : best
-  );
-  const worstPerformer = ageArray.reduce((worst, current) =>
-    current[1].cpa > worst[1].cpa ? current : worst
-  );
+  const bestPerformer = ageArray.length > 0
+    ? ageArray.reduce((best, current) =>
+        current[1].cpa < best[1].cpa ? current : best
+      )
+    : null;
+  const worstPerformer = ageArray.length > 0
+    ? ageArray.reduce((worst, current) =>
+        current[1].cpa > worst[1].cpa ? current : worst
+      )
+    : null;
 
   const getCPAColor = (cpa: number, avgCPA: number): string => {
     const ratio = cpa / avgCPA;
@@ -128,51 +132,60 @@ export function AudienceDemographics({ data }: AudienceDemographicsProps) {
       <div className="p-5 space-y-5">
 
         {/* Best & Worst Performers */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4">
-            <div className="flex items-start gap-3">
-              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
-                <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <div>
-                <p className="font-semibold text-emerald-900 dark:text-emerald-300 text-sm">
-                  Best Performer
-                </p>
-                <p className="text-lg font-bold text-emerald-700 dark:text-emerald-400 mt-1">
-                  Age {bestPerformer[0]}
-                </p>
-                <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 tabular-nums">
-                  CPA: <span className="font-semibold">${bestPerformer[1].cpa.toFixed(0)}</span> ({((bestPerformer[1].cpa / parseFloat(avgCPA) - 1) * 100).toFixed(0)}% below avg)
-                </p>
-                <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5 tabular-nums">
-                  CR: <span className="font-semibold">{(bestPerformer[1].conversionRate * 100).toFixed(2)}%</span>
-                </p>
+        {bestPerformer && worstPerformer ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
+                  <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div>
+                  <p className="font-semibold text-emerald-900 dark:text-emerald-300 text-sm">
+                    Best Performer
+                  </p>
+                  <p className="text-lg font-bold text-emerald-700 dark:text-emerald-400 mt-1">
+                    Age {bestPerformer[0]}
+                  </p>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 tabular-nums">
+                    CPA: <span className="font-semibold">${bestPerformer[1].cpa.toFixed(0)}</span> ({((bestPerformer[1].cpa / parseFloat(avgCPA) - 1) * 100).toFixed(0)}% below avg)
+                  </p>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5 tabular-nums">
+                    CR: <span className="font-semibold">{(bestPerformer[1].conversionRate * 100).toFixed(2)}%</span>
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
-            <div className="flex items-start gap-3">
-              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30">
-                <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
-              </div>
-              <div>
-                <p className="font-semibold text-red-900 dark:text-red-300 text-sm">
-                  Needs Optimization
-                </p>
-                <p className="text-lg font-bold text-red-700 dark:text-red-400 mt-1">
-                  Age {worstPerformer[0]}
-                </p>
-                <p className="text-xs text-red-600 dark:text-red-400 mt-1 tabular-nums">
-                  CPA: <span className="font-semibold">${worstPerformer[1].cpa.toFixed(0)}</span> ({((worstPerformer[1].cpa / parseFloat(avgCPA) - 1) * 100).toFixed(0)}% above avg)
-                </p>
-                <p className="text-xs text-red-600 dark:text-red-400 mt-0.5 tabular-nums">
-                  CR: <span className="font-semibold">{(worstPerformer[1].conversionRate * 100).toFixed(2)}%</span>
-                </p>
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4">
+              <div className="flex items-start gap-3">
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30">
+                  <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <p className="font-semibold text-red-900 dark:text-red-300 text-sm">
+                    Needs Optimization
+                  </p>
+                  <p className="text-lg font-bold text-red-700 dark:text-red-400 mt-1">
+                    Age {worstPerformer[0]}
+                  </p>
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-1 tabular-nums">
+                    CPA: <span className="font-semibold">${worstPerformer[1].cpa.toFixed(0)}</span> ({((worstPerformer[1].cpa / parseFloat(avgCPA) - 1) * 100).toFixed(0)}% above avg)
+                  </p>
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-0.5 tabular-nums">
+                    CR: <span className="font-semibold">{(worstPerformer[1].conversionRate * 100).toFixed(2)}%</span>
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        ) : (
+          <div className="bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl p-8 text-center">
+            <Target className="h-12 w-12 text-zinc-400 mx-auto mb-3" />
+            <p className="text-sm text-zinc-600 dark:text-zinc-400">
+              No demographic data available yet. Data will appear once your campaigns start generating performance metrics.
+            </p>
+          </div>
+        )}
 
         {/* Age Group Performance Table */}
         <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-4">
@@ -236,39 +249,41 @@ export function AudienceDemographics({ data }: AudienceDemographicsProps) {
         </div>
 
         {/* Demographic Insights */}
-        <div className="bg-gradient-to-r from-sky-50 to-blue-50 dark:from-sky-900/20 dark:to-blue-900/20 border border-sky-200 dark:border-sky-800/50 rounded-xl p-4">
-          <h4 className="text-sm font-semibold text-sky-900 dark:text-sky-300 mb-3">
-            Optimization Recommendations
-          </h4>
-          <ul className="text-xs space-y-2 text-sky-800 dark:text-sky-400">
-            <li className="flex gap-2">
-              <span className="text-sky-600 dark:text-sky-400 font-semibold flex-shrink-0">•</span>
-              <span>
-                Increase bids for <span className="font-semibold">Age {bestPerformer[0]}</span> by {Math.max(10, Math.round((parseFloat(avgCPA) / bestPerformer[1].cpa - 1) * 100))}%
-              </span>
-            </li>
-            {worstPerformer[1].cpa > parseFloat(avgCPA) * 1.3 && (
+        {bestPerformer && worstPerformer && (
+          <div className="bg-gradient-to-r from-sky-50 to-blue-50 dark:from-sky-900/20 dark:to-blue-900/20 border border-sky-200 dark:border-sky-800/50 rounded-xl p-4">
+            <h4 className="text-sm font-semibold text-sky-900 dark:text-sky-300 mb-3">
+              Optimization Recommendations
+            </h4>
+            <ul className="text-xs space-y-2 text-sky-800 dark:text-sky-400">
               <li className="flex gap-2">
                 <span className="text-sky-600 dark:text-sky-400 font-semibold flex-shrink-0">•</span>
                 <span>
-                  Reduce bids for <span className="font-semibold">Age {worstPerformer[0]}</span> by 20-30%
+                  Increase bids for <span className="font-semibold">Age {bestPerformer[0]}</span> by {Math.max(10, Math.round((parseFloat(avgCPA) / bestPerformer[1].cpa - 1) * 100))}%
                 </span>
               </li>
-            )}
-            <li className="flex gap-2">
-              <span className="text-sky-600 dark:text-sky-400 font-semibold flex-shrink-0">•</span>
-              <span>
-                Exclude ages with CPA above ${Math.round(parseFloat(avgCPA) * 1.5)}
-              </span>
-            </li>
-            <li className="flex gap-2">
-              <span className="text-sky-600 dark:text-sky-400 font-semibold flex-shrink-0">•</span>
-              <span>
-                Create dedicated campaigns for high-performing demographics
-              </span>
-            </li>
-          </ul>
-        </div>
+              {worstPerformer[1].cpa > parseFloat(avgCPA) * 1.3 && (
+                <li className="flex gap-2">
+                  <span className="text-sky-600 dark:text-sky-400 font-semibold flex-shrink-0">•</span>
+                  <span>
+                    Reduce bids for <span className="font-semibold">Age {worstPerformer[0]}</span> by 20-30%
+                  </span>
+                </li>
+              )}
+              <li className="flex gap-2">
+                <span className="text-sky-600 dark:text-sky-400 font-semibold flex-shrink-0">•</span>
+                <span>
+                  Exclude ages with CPA above ${Math.round(parseFloat(avgCPA) * 1.5)}
+                </span>
+              </li>
+              <li className="flex gap-2">
+                <span className="text-sky-600 dark:text-sky-400 font-semibold flex-shrink-0">•</span>
+                <span>
+                  Create dedicated campaigns for high-performing demographics
+                </span>
+              </li>
+            </ul>
+          </div>
+        )}
 
         {/* Distribution Visualization */}
         <div className="bg-zinc-50 dark:bg-zinc-800/50 rounded-xl p-4">

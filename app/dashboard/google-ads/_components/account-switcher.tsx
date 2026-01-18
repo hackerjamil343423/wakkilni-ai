@@ -80,14 +80,9 @@ export function AccountSwitcher({ onAccountSwitch }: AccountSwitcherProps) {
   if (accounts.length === 1) {
     return (
       <div className="flex items-center gap-2">
-        <div className="flex flex-col items-end">
-          <span className="text-sm font-medium">
-            {formatCustomerId(activeAccount?.customerId || "")}
-          </span>
-          <span className="text-xs text-zinc-500">
-            {activeAccount?.accountName}
-          </span>
-        </div>
+        <span className="text-sm font-medium">
+          {activeAccount?.accountName || formatCustomerId(activeAccount?.customerId || "")}
+        </span>
         <Button
           variant="outline"
           size="sm"
@@ -108,14 +103,9 @@ export function AccountSwitcher({ onAccountSwitch }: AccountSwitcherProps) {
           variant="outline"
           className="flex items-center gap-2 min-w-[200px] justify-between"
         >
-          <div className="flex flex-col items-start">
-            <span className="text-sm font-medium">
-              {formatCustomerId(activeAccount?.customerId || "")}
-            </span>
-            <span className="text-xs text-zinc-500">
-              {activeAccount?.accountName}
-            </span>
-          </div>
+          <span className="text-sm font-medium">
+            {activeAccount?.accountName || formatCustomerId(activeAccount?.customerId || "")}
+          </span>
           <ChevronDown className="h-4 w-4 opacity-50" />
         </Button>
       </DropdownMenuTrigger>
@@ -144,13 +134,13 @@ export function AccountSwitcher({ onAccountSwitch }: AccountSwitcherProps) {
                     <Check className="h-4 w-4 text-green-600" />
                   )}
                   <span className="font-medium text-sm">
-                    {formatCustomerId(account.customerId)}
+                    {account.accountName}
                   </span>
                 </div>
               </div>
               <div className="flex flex-col gap-0.5 pl-6">
-                <span className="text-xs text-zinc-600 dark:text-zinc-400">
-                  {account.accountName}
+                <span className="text-xs text-zinc-500">
+                  ID: {formatCustomerId(account.customerId)}
                 </span>
                 <span className="text-xs text-zinc-500">
                   Last synced: {formatLastSynced(account.lastSyncedAt)}

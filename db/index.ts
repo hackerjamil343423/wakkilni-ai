@@ -1,63 +1,32 @@
-import { drizzle } from "drizzle-orm/postgres-js";
-import postgres from "postgres";
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
 import * as schema from "./schema";
 
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL environment variable is not set");
 }
 
-const connectionString = process.env.DATABASE_URL;
-
 /**
- * PostgreSQL connection configuration optimized for Neon serverless
- * See: https://neon.tech/docs/serverless/serverless-driver
+ * Neon HTTP client - uses HTTP instead of TCP for better serverless compatibility
+ * This eliminates connection timeout issues with Neon's serverless architecture
  */
-const postgresConfig = {
-  // Connection pool settings
-  max: 10, // Maximum number of connections in the pool
-
-  // Timeout settings (in seconds)
-  connect_timeout: 30, // Time to establish new connection
-  idle_timeout: 20, // Close idle connections after this time
-  statement_timeout: 60, // Maximum time for query execution
-
-  // Neon-specific optimizations
-  // Disable prepared statements for serverless (recommended for Neon)
-  prepared: false,
-
-  // Connection metadata
-  connection: {
-    application_name: 'wakklni-ai',
-  },
-
-  // Keep alive for better connection reuse
-  keepalive: 60,
-
-  // Enable SSL for Neon (required)
-  ssl: process.env.DATABASE_URL?.includes('sslmode=require') ? undefined : 'require' as const,
-};
+const sql = neon(process.env.DATABASE_URL);
 
 /**
- * Migration client - single connection for schema changes
+ * Drizzle ORM instance with full schema support
  */
-export const migrationClient = postgres(connectionString, {
-  ...postgresConfig,
-  max: 1,
-});
+export const db = drizzle(sql, { schema });
 
 /**
- * Query client - connection pool for application queries
+ * Migration client - for drizzle-kit migrations
+ * Note: For HTTP driver, we export the neon client directly
  */
-const queryClient = postgres(connectionString, postgresConfig);
+export const migrationClient = sql;
 
 /**
- * Drizzle ORM instance
- */
-export const db = drizzle(queryClient, { schema });
-
-/**
- * Graceful shutdown handler
+ * No-op graceful shutdown handler
+ * HTTP driver doesn't maintain persistent connections, so nothing to close
  */
 export async function closeDatabase() {
-  await queryClient.end();
+  // HTTP driver doesn't maintain persistent connections
 }

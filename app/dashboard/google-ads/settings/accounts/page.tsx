@@ -14,8 +14,9 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { useGoogleAdsConnection } from "@/lib/google-ads/hooks/useGoogleAds";
-import { Plus, Trash2, RefreshCw, CheckCircle2, ArrowLeft } from "lucide-react";
+import { Plus, Trash2, RefreshCw, CheckCircle2, ArrowLeft, Pencil } from "lucide-react";
 import { DisconnectDialog } from "../../_components/disconnect-dialog";
+import { RenameDialog } from "./_components/rename-dialog";
 
 export default function AccountsSettingsPage() {
   const router = useRouter();
@@ -23,7 +24,7 @@ export default function AccountsSettingsPage() {
     useGoogleAdsConnection();
   const [refreshing, setRefreshing] = useState(false);
   const [disconnectingId, setDisconnectingId] = useState<string | null>(null);
-  const [showDisconnectAll, setShowDisconnectAll] = useState(false);
+  const [renamingAccount, setRenamingAccount] = useState<{ customerId: string; name: string } | null>(null);
 
   const formatCustomerId = (customerId: string) => {
     const cleaned = customerId.replace(/-/g, "");
@@ -58,13 +59,23 @@ export default function AccountsSettingsPage() {
     }
   };
 
-  const handleDisconnectAll = async () => {
+  const handleRename = async (customerId: string, newName: string) => {
     try {
-      await disconnectAll();
-      setShowDisconnectAll(false);
-      router.push("/dashboard/connect-platform");
+      const response = await fetch("/api/google-ads/accounts", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customerId, accountName: newName }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to rename account");
+      }
+
+      // Refresh accounts to show updated name
+      await refetchAccounts();
     } catch (error) {
-      console.error("Failed to disconnect all accounts:", error);
+      console.error("Failed to rename account:", error);
+      throw error;
     }
   };
 
@@ -173,48 +184,49 @@ export default function AccountsSettingsPage() {
                             {formatDate(account.lastSyncedAt)}
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setDisconnectingId(account.customerId)}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 gap-1"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                              Remove
-                            </Button>
+                            <div className="flex items-center justify-end gap-2">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setRenamingAccount({ customerId: account.customerId, name: account.accountName })}
+                                className="gap-1"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                                Rename
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setDisconnectingId(account.customerId)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950 gap-1"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                Remove
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
                     })}
                   </TableBody>
                 </Table>
-
-                {/* Disconnect All */}
-                {accounts.length > 1 && (
-                  <div className="mt-6 pt-6 border-t border-zinc-200 dark:border-zinc-800">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-medium text-sm">Disconnect All Accounts</h3>
-                        <p className="text-sm text-zinc-500 mt-1">
-                          Remove all {accounts.length} connected Google Ads accounts at once
-                        </p>
-                      </div>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => setShowDisconnectAll(true)}
-                      >
-                        Disconnect All
-                      </Button>
-                    </div>
-                  </div>
-                )}
               </>
             )}
           </CardContent>
         </Card>
 
-        {/* Disconnect Dialogs */}
+        {/* Rename Dialog */}
+        {renamingAccount && (
+          <RenameDialog
+            open={!!renamingAccount}
+            onOpenChange={(open) => !open && setRenamingAccount(null)}
+            currentName={renamingAccount.name}
+            customerId={formatCustomerId(renamingAccount.customerId)}
+            onConfirm={(newName) => handleRename(renamingAccount.customerId, newName)}
+          />
+        )}
+
+        {/* Disconnect Dialog */}
         {disconnectingId && (
           <DisconnectDialog
             open={!!disconnectingId}
@@ -222,15 +234,6 @@ export default function AccountsSettingsPage() {
             accountId={formatCustomerId(disconnectingId)}
             isActive={disconnectingId === activeCustomerId}
             onConfirm={() => handleDisconnect(disconnectingId)}
-          />
-        )}
-
-        {showDisconnectAll && (
-          <DisconnectDialog
-            open={showDisconnectAll}
-            onOpenChange={setShowDisconnectAll}
-            accountCount={accounts.length}
-            onConfirm={handleDisconnectAll}
           />
         )}
       </div>

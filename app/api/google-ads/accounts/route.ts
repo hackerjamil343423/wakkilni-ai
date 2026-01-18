@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { db } from "@/db";
 import { googleAdsAccount } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 
 /**
  * GET /api/google-ads/accounts
@@ -67,6 +67,77 @@ export async function GET(request: NextRequest) {
       {
         success: false,
         error: "Failed to fetch accounts",
+        message: error instanceof Error ? error.message : "An unexpected error occurred",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * PATCH /api/google-ads/accounts
+ *
+ * Updates account information (e.g., rename account).
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    // Get authenticated session
+    const session = await auth.api.getSession({ headers: await headers() });
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Unauthorized", message: "You must be logged in to access this resource" },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+    const { customerId, accountName } = body;
+
+    if (!customerId || !accountName) {
+      return NextResponse.json(
+        { error: "Bad Request", message: "customerId and accountName are required" },
+        { status: 400 }
+      );
+    }
+
+    // Update the account name
+    const result = await db
+      .update(googleAdsAccount)
+      .set({
+        accountName,
+        updatedAt: new Date()
+      })
+      .where(
+        and(
+          eq(googleAdsAccount.customerId, customerId),
+          eq(googleAdsAccount.userId, session.user.id)
+        )
+      )
+      .returning();
+
+    if (result.length === 0) {
+      return NextResponse.json(
+        { error: "Not Found", message: "Account not found or unauthorized" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      account: result[0],
+    });
+
+  } catch (error) {
+    console.error("Error updating Google Ads account:", {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to update account",
         message: error instanceof Error ? error.message : "An unexpected error occurred",
       },
       { status: 500 }

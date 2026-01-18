@@ -91,13 +91,12 @@ export class GoogleAdsService {
           metrics.ctr,
           metrics.average_cpc,
           metrics.cost_per_conversion,
-          metrics.value_per_cost,
           metrics.search_impression_share,
           metrics.search_rank_lost_impression_share,
           metrics.search_budget_lost_impression_share
         FROM campaign
         WHERE ${whereClause}
-          AND segments.date DURING ${dateRange}
+          AND segments.date BETWEEN ${dateRange}
         ORDER BY metrics.cost_micros DESC
       `;
 
@@ -144,7 +143,7 @@ export class GoogleAdsService {
           metrics.cost_per_conversion
         FROM ad_group
         WHERE ${whereClause}
-          AND segments.date DURING ${dateRange}
+          AND segments.date BETWEEN ${dateRange}
         ORDER BY metrics.cost_micros DESC
       `;
 
@@ -196,7 +195,7 @@ export class GoogleAdsService {
           metrics.cost_per_conversion
         FROM keyword_view
         WHERE ${whereClause}
-          AND segments.date DURING ${dateRange}
+          AND segments.date BETWEEN ${dateRange}
         ORDER BY metrics.cost_micros DESC
       `;
 
@@ -232,11 +231,10 @@ export class GoogleAdsService {
           metrics.ctr,
           metrics.average_cpc,
           metrics.cost_per_conversion,
-          metrics.value_per_cost,
           metrics.search_impression_share
         FROM campaign
         WHERE campaign.status != 'REMOVED'
-          AND segments.date DURING ${dateRange}
+          AND segments.date BETWEEN ${dateRange}
         ORDER BY segments.date ASC
       `;
 
@@ -263,13 +261,9 @@ export class GoogleAdsService {
         SELECT
           recommendation.resource_name,
           recommendation.type,
-          recommendation.impact.base_metrics.clicks,
-          recommendation.impact.base_metrics.conversions,
-          recommendation.impact.base_metrics.cost_micros,
           recommendation.dismissed
         FROM recommendation
         WHERE recommendation.dismissed = FALSE
-        ORDER BY recommendation.impact.base_metrics.conversions DESC
         LIMIT 20
       `;
 
@@ -332,11 +326,10 @@ export class GoogleAdsService {
           metrics.clicks,
           metrics.cost_micros,
           metrics.conversions,
-          metrics.value_per_cost,
           metrics.ctr
         FROM geographic_view
         WHERE geographic_view.location_type = 'LOCATION_OF_PRESENCE'
-          AND segments.date DURING ${dateRange}
+          AND segments.date BETWEEN ${dateRange}
         ORDER BY metrics.cost_micros DESC
         LIMIT 50
       `;
@@ -352,16 +345,18 @@ export class GoogleAdsService {
 
   /**
    * Build date range string for queries
+   * Returns format suitable for BETWEEN operator: 'YYYY-MM-DD' AND 'YYYY-MM-DD'
    */
   private buildDateRange(startDate?: Date, endDate?: Date): string {
     const start = startDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const end = endDate || new Date();
 
     const formatDate = (date: Date) => {
-      return date.toISOString().split('T')[0].replace(/-/g, '');
+      // Google Ads API requires YYYY-MM-DD format for BETWEEN operator
+      return date.toISOString().split('T')[0];
     };
 
-    return `${formatDate(start)},${formatDate(end)}`;
+    return `'${formatDate(start)}' AND '${formatDate(end)}'`;
   }
 
   /**

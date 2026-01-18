@@ -136,37 +136,6 @@ export function DashboardHeader({
 
   return (
     <div className="space-y-4">
-      {/* Top Bar - Title & Actions */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-            Google Ads
-          </h1>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
-            Performance analytics & intelligence
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={onRefresh}
-            disabled={isLoading}
-            variant="ghost"
-            size="sm"
-            className="h-9 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
-          >
-            <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-9 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
-          >
-            <Download className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
       {/* Command Bar - Glassmorphism Style */}
       <div className="flex items-center gap-3 p-3 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm">
         {/* AI Search Bar */}

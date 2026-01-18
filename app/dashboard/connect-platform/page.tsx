@@ -191,8 +191,8 @@ export default function ConnectPlatformPage() {
                 : "hover:shadow-xl hover:border-primary/20"
             }`}
           >
-            {/* 3-dot menu for connected platforms */}
-            {platform.connected && !platform.disabled && (
+            {/* 3-dot menu for connected platforms (except Google Ads which has Manage button) */}
+            {platform.connected && !platform.disabled && platform.id !== "google-ads" && (
               <div className="absolute top-4 right-4">
                 <PlatformCardMenu
                   platformId={platform.id}

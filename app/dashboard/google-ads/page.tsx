@@ -195,28 +195,16 @@ export default function GoogleAdsDashboard() {
 
   const isLoading = campaignsLoading || metricsLoading;
 
-  // Redirect to platform page if not connected
+  // Redirect to platform page if not connected (silent redirect, no white screen)
   useEffect(() => {
     if (!connectionLoading && !connected) {
-      router.push("/dashboard/connect-platform?source=google-ads");
+      router.replace("/dashboard/connect-platform?source=google-ads");
     }
   }, [connectionLoading, connected, router]);
 
-  // Show loading while checking connection
-  if (connectionLoading) {
-    return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-300 border-t-zinc-900 dark:border-zinc-700 dark:border-t-zinc-100" />
-          <p className="text-sm text-zinc-500">Checking connection...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Don't render if not connected (will redirect)
-  if (!connected) {
-    return null;
+  // Show empty container while redirecting (prevents white flash)
+  if (connectionLoading || !connected) {
+    return <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950" />;
   }
 
   return (

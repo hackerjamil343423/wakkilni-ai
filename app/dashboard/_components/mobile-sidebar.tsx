@@ -23,6 +23,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useState } from "react";
+import { useGoogleAdsConnection } from "@/lib/google-ads/hooks/useGoogleAds";
 
 interface NavItem {
   label: string;
@@ -120,6 +121,7 @@ interface MobileSidebarProps {
 export default function MobileSidebar({ trigger }: MobileSidebarProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const { connected: googleAdsConnected } = useGoogleAdsConnection();
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -154,40 +156,50 @@ export default function MobileSidebar({ trigger }: MobileSidebarProps) {
                     </h3>
                   </div>
                   <div className="space-y-1 px-3">
-                    {section.items.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        prefetch={true}
-                        onClick={() => setOpen(false)}
-                        className={clsx(
-                          "flex items-center gap-3 w-full rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 hover:cursor-pointer group/item",
-                          pathname === item.href
-                            ? "bg-sidebar-accent text-primary shadow-sm"
-                            : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground"
-                        )}
-                      >
-                        <div
+                    {section.items.map((item) => {
+                      // Hide platform dashboards if not connected
+                      if (item.href === "/dashboard/google-ads" && !googleAdsConnected) {
+                        return null;
+                      }
+                      // TODO: Add Meta Ads and TikTok Ads connection checks when implemented
+                      // if (item.href === "/dashboard/meta-ads" && !metaAdsConnected) return null;
+                      // if (item.href === "/dashboard/tiktok-ads" && !tiktokAdsConnected) return null;
+
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          prefetch={true}
+                          onClick={() => setOpen(false)}
                           className={clsx(
-                            "flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200",
+                            "flex items-center gap-3 w-full rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 hover:cursor-pointer group/item",
                             pathname === item.href
-                              ? "bg-primary/15"
-                              : "bg-transparent group-hover/item:bg-muted/50"
+                              ? "bg-sidebar-accent text-primary shadow-sm"
+                              : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-foreground"
                           )}
                         >
-                          <item.icon
+                          <div
                             className={clsx(
-                              "h-4 w-4 transition-colors",
-                              pathname === item.href ? "text-primary" : ""
+                              "flex items-center justify-center w-7 h-7 rounded-lg transition-all duration-200",
+                              pathname === item.href
+                                ? "bg-primary/15"
+                                : "bg-transparent group-hover/item:bg-muted/50"
                             )}
-                          />
-                        </div>
-                        <span>{item.label}</span>
-                        {pathname === item.href && (
-                          <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                        )}
-                      </Link>
-                    ))}
+                          >
+                            <item.icon
+                              className={clsx(
+                                "h-4 w-4 transition-colors",
+                                pathname === item.href ? "text-primary" : ""
+                              )}
+                            />
+                          </div>
+                          <span>{item.label}</span>
+                          {pathname === item.href && (
+                            <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                          )}
+                        </Link>
+                      );
+                    })}
                   </div>
                   {sectionIndex < navSections.length - 1 && (
                     <div className="mx-5 mt-4 border-t border-sidebar-border/50" />
