@@ -9,10 +9,7 @@ import {
   LucideIcon,
   ShoppingCart,
   Sparkles,
-  Plug,
   Bell,
-  HelpCircle,
-  Users,
 } from "lucide-react";
 import {
   SiFacebook,
@@ -83,30 +80,15 @@ const navSections: NavSection[] = [
         href: "/dashboard/ecommerce",
         icon: ShoppingCart,
       },
-      {
-        label: "Connect Platform",
-        href: "/dashboard/connect-platform",
-        icon: Plug,
-      },
     ],
   },
   {
     title: "Management",
     items: [
       {
-        label: "Team",
-        href: "/dashboard/team",
-        icon: Users,
-      },
-      {
         label: "Notifications",
         href: "/dashboard/notifications",
         icon: Bell,
-      },
-      {
-        label: "Help Center",
-        href: "/dashboard/help",
-        icon: HelpCircle,
       },
     ],
   },
