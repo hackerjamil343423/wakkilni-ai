@@ -19,6 +19,17 @@ import { ExternalLink, Settings2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
+import dynamic from "next/dynamic";
+
+const TeamContent = dynamic(() => import("../team/page"), {
+  ssr: false,
+  loading: () => <div className="p-6">Loading...</div>,
+});
+
+const ConnectPlatformContent = dynamic(() => import("../connect-platform/page"), {
+  ssr: false,
+  loading: () => <div className="p-6">Loading...</div>,
+});
 
 interface User {
   id: string;
@@ -76,7 +87,7 @@ function SettingsContent() {
   // Handle URL tab parameter
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab && ["profile", "organization", "billing"].includes(tab)) {
+    if (tab && ["profile", "organization", "billing", "team", "connect-platform"].includes(tab)) {
       setCurrentTab(tab);
     }
   }, [searchParams]);
@@ -287,6 +298,8 @@ function SettingsContent() {
         <TabsList>
           <TabsTrigger value="profile">Profile</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
+          <TabsTrigger value="team">Team</TabsTrigger>
+          <TabsTrigger value="connect-platform">Connect Platform</TabsTrigger>
         </TabsList>
 
         <TabsContent value="profile" className="space-y-6">
@@ -540,6 +553,14 @@ function SettingsContent() {
               </Card>
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="team" className="space-y-6">
+          <TeamContent />
+        </TabsContent>
+
+        <TabsContent value="connect-platform" className="space-y-6">
+          <ConnectPlatformContent />
         </TabsContent>
       </Tabs>
     </div>
