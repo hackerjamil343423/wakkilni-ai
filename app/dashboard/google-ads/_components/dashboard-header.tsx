@@ -3,17 +3,20 @@
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  RefreshCw,
-  Download,
   SlidersHorizontal,
-  Calendar,
+  Calendar as CalendarIcon,
   X,
-  Command,
-  Sparkles,
   ChevronDown,
 } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { DashboardFilters, CampaignType, CampaignStatus } from "../types";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 const CAMPAIGN_TYPES: CampaignType[] = [
   "SEARCH",
@@ -26,13 +29,6 @@ const CAMPAIGN_TYPES: CampaignType[] = [
 
 const CAMPAIGN_STATUSES: CampaignStatus[] = ["ENABLED", "PAUSED", "REMOVED"];
 
-const DATE_PRESETS = [
-  { id: "7d", label: "7D" },
-  { id: "30d", label: "30D" },
-  { id: "90d", label: "90D" },
-  { id: "ytd", label: "YTD" },
-] as const;
-
 interface DashboardHeaderProps {
   onFiltersChange: (filters: DashboardFilters) => void;
   isLoading?: boolean;
@@ -44,50 +40,40 @@ export function DashboardHeader({
   isLoading,
   onRefresh,
 }: DashboardHeaderProps) {
-  const [dateRange, setDateRange] = useState("30d");
+  const [startDate, setStartDate] = useState<Date>(
+    new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+  );
+  const [endDate, setEndDate] = useState<Date>(new Date());
   const [selectedCampaignTypes, setSelectedCampaignTypes] = useState<CampaignType[]>([]);
   const [selectedStatuses, setSelectedStatuses] = useState<CampaignStatus[]>([]);
   const [showFilters, setShowFilters] = useState(false);
-  const [compareEnabled, setCompareEnabled] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
-  const getDateRange = useCallback(
-    (range: string): { startDate: Date; endDate: Date } => {
-      const endDate = new Date();
-      const startDate = new Date();
-
-      switch (range) {
-        case "7d":
-          startDate.setDate(startDate.getDate() - 7);
-          break;
-        case "30d":
-          startDate.setDate(startDate.getDate() - 30);
-          break;
-        case "90d":
-          startDate.setDate(startDate.getDate() - 90);
-          break;
-        case "ytd": {
-          const year = new Date().getFullYear();
-          startDate.setFullYear(year, 0, 1);
-          break;
-        }
-        default:
-          startDate.setDate(startDate.getDate() - 30);
+  const handleStartDateChange = (date: Date | undefined) => {
+    if (date) {
+      setStartDate(date);
+      if (date <= endDate) {
+        onFiltersChange({
+          dateRange: { startDate: date, endDate },
+          campaignTypes: selectedCampaignTypes,
+          campaignStatuses: selectedStatuses,
+        });
       }
+    }
+  };
 
-      return { startDate, endDate };
-    },
-    []
-  );
-
-  const handleDateRangeChange = (range: string) => {
-    setDateRange(range);
-    const { startDate, endDate } = getDateRange(range);
-
-    onFiltersChange({
-      dateRange: { startDate, endDate },
-      campaignTypes: selectedCampaignTypes,
-      campaignStatuses: selectedStatuses,
-    });
+  const handleEndDateChange = (date: Date | undefined) => {
+    if (date) {
+      setEndDate(date);
+      if (startDate <= date) {
+        onFiltersChange({
+          dateRange: { startDate, endDate: date },
+          campaignTypes: selectedCampaignTypes,
+          campaignStatuses: selectedStatuses,
+        });
+        setCalendarOpen(false);
+      }
+    }
   };
 
   const handleCampaignTypeToggle = (type: CampaignType) => {
@@ -96,7 +82,6 @@ export function DashboardHeader({
       : [...selectedCampaignTypes, type];
 
     setSelectedCampaignTypes(updated);
-    const { startDate, endDate } = getDateRange(dateRange);
 
     onFiltersChange({
       dateRange: { startDate, endDate },
@@ -111,7 +96,6 @@ export function DashboardHeader({
       : [...selectedStatuses, status];
 
     setSelectedStatuses(updated);
-    const { startDate, endDate } = getDateRange(dateRange);
 
     onFiltersChange({
       dateRange: { startDate, endDate },
@@ -123,7 +107,6 @@ export function DashboardHeader({
   const clearFilters = () => {
     setSelectedCampaignTypes([]);
     setSelectedStatuses([]);
-    const { startDate, endDate } = getDateRange("30d");
 
     onFiltersChange({
       dateRange: { startDate, endDate },
@@ -136,57 +119,44 @@ export function DashboardHeader({
 
   return (
     <div className="space-y-4">
-      {/* Command Bar - Glassmorphism Style */}
+      {/* Control Bar - Glassmorphism Style */}
       <div className="flex items-center gap-3 p-3 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm">
-        {/* AI Search Bar */}
-        <div className="flex-1 flex items-center gap-3 px-3 py-2 bg-zinc-100 dark:bg-zinc-800 rounded-lg cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors">
-          <Sparkles className="h-4 w-4 text-violet-500" />
-          <span className="text-sm text-zinc-500 dark:text-zinc-400 flex-1">
-            Ask AI about your campaigns...
-          </span>
-          <kbd className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium text-zinc-400 dark:text-zinc-500 bg-zinc-200 dark:bg-zinc-700 rounded">
-            <Command className="h-3 w-3" />K
-          </kbd>
-        </div>
-
-        {/* Divider */}
-        <div className="w-px h-8 bg-zinc-200 dark:bg-zinc-700" />
-
-        {/* Date Range Selector */}
-        <div className="flex items-center gap-1">
-          <Calendar className="h-4 w-4 text-zinc-400 mr-1" />
-          {DATE_PRESETS.map((preset) => (
-            <button
-              key={preset.id}
-              onClick={() => handleDateRangeChange(preset.id)}
-              className={cn(
-                "px-3 py-1.5 text-xs font-medium rounded-md transition-all",
-                dateRange === preset.id
-                  ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900"
-                  : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-              )}
+        {/* Date Range Picker */}
+        <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium"
             >
-              {preset.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Compare Toggle */}
-        <button
-          onClick={() => setCompareEnabled(!compareEnabled)}
-          className={cn(
-            "flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-md transition-all",
-            compareEnabled
-              ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300"
-              : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-          )}
-        >
-          <span className={cn(
-            "w-2 h-2 rounded-full transition-colors",
-            compareEnabled ? "bg-indigo-500" : "bg-zinc-300 dark:bg-zinc-600"
-          )} />
-          Compare
-        </button>
+              <CalendarIcon className="h-4 w-4" />
+              <span>{format(startDate, "MMM dd")} - {format(endDate, "MMM dd")}</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <div className="p-4 space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-zinc-500">Start Date</label>
+                <Calendar
+                  mode="single"
+                  selected={startDate}
+                  onSelect={handleStartDateChange}
+                  disabled={(date) => date > endDate}
+                  className="rounded-md border"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-semibold text-zinc-500">End Date</label>
+                <Calendar
+                  mode="single"
+                  selected={endDate}
+                  onSelect={handleEndDateChange}
+                  disabled={(date) => date < startDate}
+                  className="rounded-md border"
+                />
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
 
         {/* Divider */}
         <div className="w-px h-8 bg-zinc-200 dark:bg-zinc-700" />
