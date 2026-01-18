@@ -12,7 +12,6 @@ import { PMaxListingGroups } from "./_components/pmax-listing-groups";
 import { VideoEngagementFunnel } from "./_components/video-engagement-funnel";
 import { GeoPerformanceMap } from "./_components/geo-performance-map";
 import { DaypartingHeatmap } from "./_components/dayparting-heatmap";
-import { RecommendationsFeed } from "./_components/recommendations-feed";
 import { AudienceDemographics } from "./_components/audience-demographics";
 import { ConnectAccountPrompt } from "./_components/connect-account-prompt";
 import { ConnectionStatus } from "./_components/connection-status";
@@ -20,7 +19,6 @@ import {
   useCampaigns,
   useDailyMetrics,
   useKeywords,
-  useRecommendations,
   useGeoPerformance,
   useGoogleAdsConnection,
 } from "@/lib/google-ads/hooks/useGoogleAds";
@@ -41,26 +39,10 @@ import {
   Zap,
   Video,
   Globe,
-  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type TabId = "overview" | "search" | "pmax" | "video" | "audience" | "recommendations";
-
-interface Tab {
-  id: TabId;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-}
-
-const TABS: Tab[] = [
-  { id: "overview", label: "Overview", icon: BarChart3 },
-  { id: "search", label: "Search", icon: Search },
-  { id: "pmax", label: "PMax", icon: Zap },
-  { id: "video", label: "Video", icon: Video },
-  { id: "audience", label: "Audience", icon: Globe },
-  { id: "recommendations", label: "AI Insights", icon: Sparkles },
-];
+type TabId = "overview" | "search" | "pmax" | "video" | "audience";
 
 export default function GoogleAdsDashboard() {
   const router = useRouter();
@@ -110,13 +92,6 @@ export default function GoogleAdsDashboard() {
     endDate: filters.dateRange.endDate,
     enabled: connected && !!activeCustomerId,
   });
-
-  const {
-    data: recommendations,
-    loading: recommendationsLoading,
-    refetch: refetchRecommendations,
-    applyRecommendation
-  } = useRecommendations(activeCustomerId || "", connected && !!activeCustomerId);
 
   const {
     data: geoData,
@@ -171,7 +146,6 @@ export default function GoogleAdsDashboard() {
     refetchCampaigns();
     refetchMetrics();
     refetchKeywords();
-    refetchRecommendations();
     refetchGeo();
   };
 
@@ -190,8 +164,6 @@ export default function GoogleAdsDashboard() {
     }
     return true;
   });
-
-  const highImpactCount = recommendations.filter((r) => r.impact === "HIGH").length;
 
   const isLoading = campaignsLoading || metricsLoading;
 
@@ -222,42 +194,11 @@ export default function GoogleAdsDashboard() {
           </div>
           <DashboardHeader
             onFiltersChange={handleFiltersChange}
+            onTabChange={setActiveTab}
+            currentTab={activeTab}
             isLoading={isLoading}
             onRefresh={handleRefresh}
           />
-        </div>
-
-        {/* Tab Navigation */}
-        <div className="flex items-center gap-1 p-1 bg-zinc-100 dark:bg-zinc-900 rounded-lg w-fit">
-          {TABS.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            const showBadge = tab.id === "recommendations" && highImpactCount > 0;
-
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={cn(
-                  "relative flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md transition-all duration-200",
-                  isActive
-                    ? "bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm"
-                    : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
-                )}
-              >
-                <Icon className={cn(
-                  "h-4 w-4",
-                  tab.id === "recommendations" && "text-violet-500"
-                )} />
-                <span>{tab.label}</span>
-                {showBadge && (
-                  <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold bg-red-500 text-white rounded-full">
-                    {highImpactCount}
-                  </span>
-                )}
-              </button>
-            );
-          })}
         </div>
 
         {/* Tab Content */}
@@ -319,14 +260,6 @@ export default function GoogleAdsDashboard() {
                     <DaypartingHeatmap data={hourlyData} />
                   </div>
                 </div>
-              )}
-
-              {/* Recommendations Tab */}
-              {activeTab === "recommendations" && (
-                <RecommendationsFeed
-                  data={recommendations}
-                  onApply={applyRecommendation}
-                />
               )}
             </>
           )}
