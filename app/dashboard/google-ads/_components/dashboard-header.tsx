@@ -155,15 +155,25 @@ export function DashboardHeader({
               </span>
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-4" align="start">
-            <Calendar
-              mode="range"
-              defaultMonth={dateRange?.from}
-              selected={dateRange}
-              onSelect={handleDateRangeChange}
-              numberOfMonths={2}
-              className="rounded-lg border"
-            />
+          <PopoverContent className="w-auto p-0 border-0 shadow-lg rounded-xl overflow-hidden" align="start">
+            <div className="bg-white dark:bg-zinc-900 p-4 border-b border-zinc-200 dark:border-zinc-800">
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Select date range</h3>
+              <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                {dateRange?.from && dateRange?.to
+                  ? `${format(dateRange.from, "MMM d, yyyy")} - ${format(dateRange.to, "MMM d, yyyy")}`
+                  : "Choose a start and end date"}
+              </p>
+            </div>
+            <div className="bg-white dark:bg-zinc-900 p-6">
+              <Calendar
+                mode="range"
+                defaultMonth={dateRange?.from}
+                selected={dateRange}
+                onSelect={handleDateRangeChange}
+                numberOfMonths={2}
+                disabled={{ after: new Date() }}
+              />
+            </div>
           </PopoverContent>
         </Popover>
 
