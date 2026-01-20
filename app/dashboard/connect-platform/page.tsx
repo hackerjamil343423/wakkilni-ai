@@ -3,170 +3,74 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Sparkles, ShoppingBag, Store } from "lucide-react";
-import {
-  SiFacebook,
-  SiGoogle,
-  SiTiktok,
-  SiSnapchat,
-} from "@icons-pack/react-simple-icons";
+import { Badge } from "@/components/ui/badge";
+import { Sparkles } from "lucide-react";
+import { PLATFORMS, PlatformConfig } from "@/lib/platform/config";
 import { PlatformCardMenu } from "./_components/platform-card-menu";
 import { PlatformDisconnectDialog } from "./_components/platform-disconnect-dialog";
 
-interface Integration {
-  id: string;
-  name: string;
-  description: string;
-  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
-  color: string;
+interface PlatformWithConnection extends PlatformConfig {
   connected: boolean;
-  disabled?: boolean;
 }
-
-const integrations: Integration[] = [
-  {
-    id: "meta-ads",
-    name: "Meta Ads",
-    description: "Connect your Facebook and Instagram advertising campaigns to track performance and insights.",
-    icon: SiFacebook,
-    color: "#0866FF",
-    connected: false,
-  },
-  {
-    id: "google-ads",
-    name: "Google Ads",
-    description: "Integrate your Google Ads campaigns to monitor spend, conversions, and ROI metrics.",
-    icon: SiGoogle,
-    color: "#4285F4",
-    connected: false,
-  },
-  {
-    id: "tiktok-ads",
-    name: "TikTok Ads",
-    description: "Track your TikTok advertising performance and analyze campaign effectiveness.",
-    icon: SiTiktok,
-    color: "#000000",
-    connected: false,
-  },
-  {
-    id: "snapchat-ads",
-    name: "Snapchat Ads",
-    description: "Connect Snapchat Ads to track impressions, engagement, and ad performance.",
-    icon: SiSnapchat,
-    color: "#FFFC00",
-    connected: false,
-    disabled: true,
-  },
-  {
-    id: "salla",
-    name: "Salla App",
-    description: "Integrate your Salla e-commerce store to sync orders, products, and sales data.",
-    icon: ShoppingBag,
-    color: "#6C5CE7",
-    connected: false,
-    disabled: true,
-  },
-  {
-    id: "zid",
-    name: "Zid App",
-    description: "Connect your Zid store to manage inventory, track sales, and analyze customer data.",
-    icon: Store,
-    color: "#00B894",
-    connected: false,
-    disabled: true,
-  },
-];
 
 export default function ConnectPlatformPage() {
   const router = useRouter();
-  const [platforms, setPlatforms] = useState<Integration[]>(integrations);
+  const [platforms, setPlatforms] = useState<PlatformWithConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false);
-  const [platformToDisconnect, setPlatformToDisconnect] = useState<Integration | null>(null);
+  const [platformToDisconnect, setPlatformToDisconnect] = useState<PlatformConfig | null>(null);
 
-  // Fetch Google Ads connection status on mount
+  // Fetch connection status for all platforms on mount
   useEffect(() => {
     const checkConnections = async () => {
-      try {
-        // Check Google Ads connection
-        const googleAdsResponse = await fetch("/api/google-ads/accounts");
-        if (googleAdsResponse.ok) {
-          const data = await googleAdsResponse.json();
-          const hasAccounts = data.accounts && data.accounts.length > 0;
+      setLoading(true);
+      const results: PlatformWithConnection[] = [];
 
-          setPlatforms((prev) =>
-            prev.map((platform) =>
-              platform.id === "google-ads"
-                ? { ...platform, connected: hasAccounts }
-                : platform
-            )
-          );
+      for (const platform of PLATFORMS) {
+        let connected = false;
+
+        if (platform.available) {
+          try {
+            const response = await fetch(platform.connectionCheckPath);
+            if (response.ok) {
+              const data = await response.json();
+              connected = data.accounts && data.accounts.length > 0;
+            }
+          } catch (error) {
+            console.error(`Error checking ${platform.id} connection:`, error);
+          }
         }
 
-        // Check Meta Ads connection
-        const metaAdsResponse = await fetch("/api/meta-ads/accounts");
-        if (metaAdsResponse.ok) {
-          const data = await metaAdsResponse.json();
-          const hasAccounts = data.accounts && data.accounts.length > 0;
-
-          setPlatforms((prev) =>
-            prev.map((platform) =>
-              platform.id === "meta-ads"
-                ? { ...platform, connected: hasAccounts }
-                : platform
-            )
-          );
-        }
-      } catch (error) {
-        console.error("Error checking platform connections:", error);
-      } finally {
-        setLoading(false);
+        results.push({ ...platform, connected });
       }
+
+      setPlatforms(results);
+      setLoading(false);
     };
 
     checkConnections();
   }, []);
 
-  const handleConnect = (id: string) => {
-    // Special handling for Google Ads
-    if (id === "google-ads") {
-      const platform = platforms.find((p) => p.id === "google-ads");
-
-      if (platform?.connected) {
-        // Navigate to account management
-        router.push("/dashboard/google-ads/settings/accounts");
-      } else {
-        // Trigger OAuth flow
-        window.location.href = "/api/google-ads/oauth/authorize";
-      }
+  const handleConnect = (platform: PlatformWithConnection) => {
+    if (!platform.available) {
+      // Coming soon platforms don't do anything
       return;
     }
 
-    // Special handling for Meta Ads
-    if (id === "meta-ads") {
-      const platform = platforms.find((p) => p.id === "meta-ads");
-
-      if (platform?.connected) {
-        // Navigate to Meta Ads dashboard
-        router.push("/dashboard/meta-ads");
-      } else {
-        // Trigger OAuth flow
-        window.location.href = "/api/meta-ads/oauth/authorize";
+    if (platform.connected) {
+      // Navigate to account management if settings path exists
+      if (platform.settingsPath) {
+        router.push(platform.settingsPath);
       }
-      return;
+    } else {
+      // Trigger OAuth flow if oauth path exists
+      if (platform.oauthPath) {
+        window.location.href = platform.oauthPath;
+      }
     }
-
-    // Default toggle behavior for other platforms
-    setPlatforms((prev) =>
-      prev.map((platform) =>
-        platform.id === id
-          ? { ...platform, connected: !platform.connected }
-          : platform
-      )
-    );
   };
 
-  const handleOpenDisconnectDialog = (platform: Integration) => {
+  const handleOpenDisconnectDialog = (platform: PlatformConfig) => {
     setPlatformToDisconnect(platform);
     setDisconnectDialogOpen(true);
   };
@@ -175,43 +79,39 @@ export default function ConnectPlatformPage() {
     if (!platformToDisconnect) return;
 
     try {
-      // Platform-specific disconnect logic
-      if (platformToDisconnect.id === "google-ads") {
-        const response = await fetch("/api/google-ads/disconnect", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ all: true }),
-        });
+      // Platform-specific disconnect API
+      const disconnectPath = platformToDisconnect.id === "google-ads"
+        ? "/api/google-ads/disconnect"
+        : platformToDisconnect.id === "meta-ads"
+        ? "/api/meta-ads/disconnect"
+        : `/api/${platformToDisconnect.id}/disconnect`;
 
-        if (response.ok) {
-          setPlatforms((prev) =>
-            prev.map((p) =>
-              p.id === platformToDisconnect.id ? { ...p, connected: false } : p
-            )
-          );
-        } else {
-          console.error("Failed to disconnect Google Ads");
-        }
-      } else if (platformToDisconnect.id === "meta-ads") {
-        const response = await fetch("/api/meta-ads/disconnect", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-        });
+      const method = platformToDisconnect.id === "meta-ads" ? "DELETE" : "POST";
 
-        if (response.ok) {
-          setPlatforms((prev) =>
-            prev.map((p) =>
-              p.id === platformToDisconnect.id ? { ...p, connected: false } : p
-            )
-          );
-        } else {
-          console.error("Failed to disconnect Meta Ads");
-        }
+      const response = await fetch(disconnectPath, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        ...(method === "POST" && { body: JSON.stringify({ all: true }) }),
+      });
+
+      if (response.ok) {
+        setPlatforms((prev) =>
+          prev.map((p) =>
+            p.id === platformToDisconnect.id ? { ...p, connected: false } : p
+          )
+        );
+      } else {
+        console.error(`Failed to disconnect ${platformToDisconnect.name}`);
       }
-      // Add other platform disconnect handlers here as needed
     } catch (error) {
       console.error("Error disconnecting platform:", error);
     }
+  };
+
+  const getButtonText = (platform: PlatformWithConnection) => {
+    if (!platform.available) return "Coming Soon";
+    if (platform.connected) return "Manage";
+    return "Connect";
   };
 
   return (
@@ -229,14 +129,23 @@ export default function ConnectPlatformPage() {
         {platforms.map((platform) => (
           <div
             key={platform.id}
-            className={`group relative bg-card border rounded-2xl p-6 transition-all duration-300 hover:shadow-lg ${
-              platform.disabled
+            className={`group relative bg-card border rounded-2xl p-6 transition-all duration-300 ${
+              !platform.available
                 ? "opacity-50 cursor-not-allowed"
                 : "hover:shadow-xl hover:border-primary/20"
             }`}
           >
-            {/* 3-dot menu for connected platforms (except Google Ads and Meta Ads which have Manage button) */}
-            {platform.connected && !platform.disabled && platform.id !== "google-ads" && platform.id !== "meta-ads" && (
+            {/* Coming Soon Badge */}
+            {!platform.available && (
+              <div className="absolute top-4 right-4">
+                <Badge variant="secondary" className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                  Coming Soon
+                </Badge>
+              </div>
+            )}
+
+            {/* 3-dot menu for connected available platforms (except those with Manage button) */}
+            {platform.available && platform.connected && (
               <div className="absolute top-4 right-4">
                 <PlatformCardMenu
                   platformId={platform.id}
@@ -251,10 +160,10 @@ export default function ConnectPlatformPage() {
               <div className="flex items-start gap-4 flex-1">
                 <div
                   className={`flex items-center justify-center w-12 h-12 rounded-xl transition-transform duration-300 ${
-                    !platform.disabled && "group-hover:scale-110"
+                    platform.available && "group-hover:scale-110"
                   }`}
                   style={{
-                    backgroundColor: platform.disabled
+                    backgroundColor: !platform.available
                       ? "#E5E7EB"
                       : `${platform.color}15`,
                   }}
@@ -262,7 +171,7 @@ export default function ConnectPlatformPage() {
                   <platform.icon
                     className="w-6 h-6"
                     style={{
-                      color: platform.disabled ? "#9CA3AF" : platform.color,
+                      color: !platform.available ? "#9CA3AF" : platform.color,
                     }}
                   />
                 </div>
@@ -275,19 +184,19 @@ export default function ConnectPlatformPage() {
                 </div>
               </div>
 
-              {/* Connect Button */}
+              {/* Connect/Coming Soon Button */}
               <Button
-                onClick={() => handleConnect(platform.id)}
-                disabled={platform.disabled}
+                onClick={() => handleConnect(platform)}
+                disabled={!platform.available}
                 className={`rounded-full px-6 font-medium transition-all duration-300 ${
-                  platform.connected
+                  !platform.available
+                    ? "bg-amber-600 hover:bg-amber-700 text-white cursor-not-allowed"
+                    : platform.connected
                     ? "bg-green-600 hover:bg-green-700 text-white"
                     : "bg-black hover:bg-black/90 text-white dark:bg-white dark:text-black dark:hover:bg-white/90"
-                } ${platform.disabled && "cursor-not-allowed opacity-50"}`}
+                }`}
               >
-                {platform.connected
-                  ? platform.id === "google-ads" || platform.id === "meta-ads" ? "Manage" : "Connected"
-                  : "Connect"}
+                {getButtonText(platform)}
               </Button>
             </div>
           </div>
