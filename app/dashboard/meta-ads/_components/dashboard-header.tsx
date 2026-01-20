@@ -15,9 +15,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { DateRange } from "../types";
-import { CalendarIcon, RefreshCw, Zap, ChevronDown, Check } from "lucide-react";
+import { CalendarIcon, RefreshCw, Zap, ChevronDown, Check, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, subDays } from "date-fns";
+
+interface MetaAdsAccount {
+  id: string;
+  accountId: string;
+  accountName: string;
+  currency?: string;
+  isPrimary?: boolean;
+}
 
 interface DashboardHeaderProps {
   onDateRangeChange?: (range: DateRange) => void;
@@ -26,6 +34,9 @@ interface DashboardHeaderProps {
   onCreativeChange?: (creative: string) => void;
   onRefresh?: () => void;
   isLoading?: boolean;
+  accounts?: MetaAdsAccount[];
+  activeAccount?: MetaAdsAccount | null;
+  onAccountSwitch?: (accountId: string) => void;
 }
 
 const presets = [
@@ -60,6 +71,9 @@ export function DashboardHeader({
   onCreativeChange,
   onRefresh,
   isLoading = false,
+  accounts = [],
+  activeAccount,
+  onAccountSwitch,
 }: DashboardHeaderProps) {
   const [selectedPreset, setSelectedPreset] = useState("30d");
   const [date, setDate] = useState<DateRange>({
@@ -70,6 +84,10 @@ export function DashboardHeader({
   const [campaign, setCampaign] = useState("all");
   const [creative, setCreative] = useState("all");
   const [dateOpen, setDateOpen] = useState(false);
+
+  const handleAccountSwitch = (accountId: string) => {
+    onAccountSwitch?.(accountId);
+  };
 
   const handlePresetClick = (preset: typeof presets[0]) => {
     const newRange = {
@@ -118,6 +136,54 @@ export function DashboardHeader({
 
       {/* Controls Section */}
       <div className="flex items-center gap-2 flex-wrap">
+        {/* Account Switcher */}
+        {accounts.length > 0 && (
+          <Select
+            value={activeAccount?.id || ""}
+            onValueChange={handleAccountSwitch}
+          >
+            <SelectTrigger className="w-[240px] h-9 text-sm border-slate-200">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-slate-500" />
+                <SelectValue placeholder="Select Account">
+                  {activeAccount ? (
+                    <div className="flex items-center gap-2">
+                      <span className="truncate max-w-[120px]">{activeAccount.accountName}</span>
+                      {activeAccount.currency && (
+                        <span className="text-xs text-slate-500">({activeAccount.currency})</span>
+                      )}
+                    </div>
+                  ) : (
+                    <span>Select Account</span>
+                  )}
+                </SelectValue>
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              {accounts.map((account) => (
+                <SelectItem key={account.id} value={account.id}>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex flex-col">
+                      <span className="font-medium text-sm">{account.accountName}</span>
+                      <span className="text-xs text-slate-500">{account.accountId}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {account.currency && (
+                        <span className="text-xs text-slate-500">{account.currency}</span>
+                      )}
+                      {account.isPrimary && (
+                        <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded">
+                          Primary
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+
         {/* Date Range Picker */}
         <Popover open={dateOpen} onOpenChange={setDateOpen}>
           <PopoverTrigger asChild>

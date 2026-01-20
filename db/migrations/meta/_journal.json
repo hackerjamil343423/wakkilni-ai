@@ -15,6 +15,13 @@
       "when": 1766294647755,
       "tag": "0001_dazzling_squadron_supreme",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1768866111287,
+      "tag": "0002_lovely_master_chief",
+      "breakpoints": true
     }
   ]
 }

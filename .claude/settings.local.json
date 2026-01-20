@@ -1,0 +1,13 @@
+{
+  "enabledMcpjsonServers": [
+    "shadcn"
+  ],
+  "enableAllProjectMcpServers": true,
+  "env": {
+      "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
+      "ANTHROPIC_AUTH_TOKEN": "eb84bcd3fa3c4fa68c75f4c82395fc9b.j3xXEtiHfq69hWZe",
+      "ANTHROPIC_DEFAULT_HAIKU_MODEL":"glm-4.6",
+      "ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-4.6V",
+      "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-4.7"
+    }
+}
