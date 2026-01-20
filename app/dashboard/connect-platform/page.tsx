@@ -86,11 +86,12 @@ export default function ConnectPlatformPage() {
 
   // Fetch Google Ads connection status on mount
   useEffect(() => {
-    const checkGoogleAdsConnection = async () => {
+    const checkConnections = async () => {
       try {
-        const response = await fetch("/api/google-ads/accounts");
-        if (response.ok) {
-          const data = await response.json();
+        // Check Google Ads connection
+        const googleAdsResponse = await fetch("/api/google-ads/accounts");
+        if (googleAdsResponse.ok) {
+          const data = await googleAdsResponse.json();
           const hasAccounts = data.accounts && data.accounts.length > 0;
 
           setPlatforms((prev) =>
@@ -101,14 +102,29 @@ export default function ConnectPlatformPage() {
             )
           );
         }
+
+        // Check Meta Ads connection
+        const metaAdsResponse = await fetch("/api/meta-ads/accounts");
+        if (metaAdsResponse.ok) {
+          const data = await metaAdsResponse.json();
+          const hasAccounts = data.accounts && data.accounts.length > 0;
+
+          setPlatforms((prev) =>
+            prev.map((platform) =>
+              platform.id === "meta-ads"
+                ? { ...platform, connected: hasAccounts }
+                : platform
+            )
+          );
+        }
       } catch (error) {
-        console.error("Error checking Google Ads connection:", error);
+        console.error("Error checking platform connections:", error);
       } finally {
         setLoading(false);
       }
     };
 
-    checkGoogleAdsConnection();
+    checkConnections();
   }, []);
 
   const handleConnect = (id: string) => {
@@ -122,6 +138,20 @@ export default function ConnectPlatformPage() {
       } else {
         // Trigger OAuth flow
         window.location.href = "/api/google-ads/oauth/authorize";
+      }
+      return;
+    }
+
+    // Special handling for Meta Ads
+    if (id === "meta-ads") {
+      const platform = platforms.find((p) => p.id === "meta-ads");
+
+      if (platform?.connected) {
+        // Navigate to Meta Ads dashboard
+        router.push("/dashboard/meta-ads");
+      } else {
+        // Trigger OAuth flow
+        window.location.href = "/api/meta-ads/oauth/authorize";
       }
       return;
     }
@@ -162,9 +192,23 @@ export default function ConnectPlatformPage() {
         } else {
           console.error("Failed to disconnect Google Ads");
         }
+      } else if (platformToDisconnect.id === "meta-ads") {
+        const response = await fetch("/api/meta-ads/disconnect", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+        });
+
+        if (response.ok) {
+          setPlatforms((prev) =>
+            prev.map((p) =>
+              p.id === platformToDisconnect.id ? { ...p, connected: false } : p
+            )
+          );
+        } else {
+          console.error("Failed to disconnect Meta Ads");
+        }
       }
       // Add other platform disconnect handlers here as needed
-      // else if (platformToDisconnect.id === "meta-ads") { ... }
     } catch (error) {
       console.error("Error disconnecting platform:", error);
     }
@@ -191,8 +235,8 @@ export default function ConnectPlatformPage() {
                 : "hover:shadow-xl hover:border-primary/20"
             }`}
           >
-            {/* 3-dot menu for connected platforms (except Google Ads which has Manage button) */}
-            {platform.connected && !platform.disabled && platform.id !== "google-ads" && (
+            {/* 3-dot menu for connected platforms (except Google Ads and Meta Ads which have Manage button) */}
+            {platform.connected && !platform.disabled && platform.id !== "google-ads" && platform.id !== "meta-ads" && (
               <div className="absolute top-4 right-4">
                 <PlatformCardMenu
                   platformId={platform.id}
@@ -242,7 +286,7 @@ export default function ConnectPlatformPage() {
                 } ${platform.disabled && "cursor-not-allowed opacity-50"}`}
               >
                 {platform.connected
-                  ? platform.id === "google-ads" ? "Manage" : "Connected"
+                  ? platform.id === "google-ads" || platform.id === "meta-ads" ? "Manage" : "Connected"
                   : "Connect"}
               </Button>
             </div>
