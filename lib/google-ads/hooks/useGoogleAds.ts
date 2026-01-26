@@ -73,10 +73,10 @@ export function useCampaigns(options: UseGoogleAdsDataOptions) {
     }
   }, [options.customerId, options.startDate, options.endDate, options.enabled]);
 
-  // Don't auto-fetch on mount - only fetch when explicitly called via refetch
-  // useEffect(() => {
-  //   fetchCampaigns();
-  // }, [fetchCampaigns]);
+  // Auto-fetch on mount when enabled
+  useEffect(() => {
+    fetchCampaigns();
+  }, [fetchCampaigns]);
 
   return { data, loading, error, refetch: fetchCampaigns };
 }
@@ -122,10 +122,10 @@ export function useDailyMetrics(options: UseGoogleAdsDataOptions) {
     }
   }, [options.customerId, options.startDate, options.endDate, options.enabled]);
 
-  // Don't auto-fetch on mount - only fetch when explicitly called via refetch
-  // useEffect(() => {
-  //   fetchMetrics();
-  // }, [fetchMetrics]);
+  // Auto-fetch on mount when enabled
+  useEffect(() => {
+    fetchMetrics();
+  }, [fetchMetrics]);
 
   return { data, loading, error, refetch: fetchMetrics };
 }
@@ -171,10 +171,10 @@ export function useKeywords(options: UseGoogleAdsDataOptions) {
     }
   }, [options.customerId, options.startDate, options.endDate, options.enabled]);
 
-  // Don't auto-fetch on mount - only fetch when explicitly called via refetch
-  // useEffect(() => {
-  //   fetchKeywords();
-  // }, [fetchKeywords]);
+  // Auto-fetch on mount when enabled
+  useEffect(() => {
+    fetchKeywords();
+  }, [fetchKeywords]);
 
   return { data, loading, error, refetch: fetchKeywords };
 }
@@ -231,10 +231,10 @@ export function useRecommendations(customerId: string, enabled = true) {
     }
   }, [customerId, fetchRecommendations]);
 
-  // Don't auto-fetch on mount - only fetch when explicitly called via refetch
-  // useEffect(() => {
-  //   fetchRecommendations();
-  // }, [fetchRecommendations]);
+  // Auto-fetch on mount when enabled
+  useEffect(() => {
+    fetchRecommendations();
+  }, [fetchRecommendations]);
 
   return {
     data,
@@ -286,10 +286,10 @@ export function useGeoPerformance(options: UseGoogleAdsDataOptions) {
     }
   }, [options.customerId, options.startDate, options.endDate, options.enabled]);
 
-  // Don't auto-fetch on mount - only fetch when explicitly called via refetch
-  // useEffect(() => {
-  //   fetchGeoData();
-  // }, [fetchGeoData]);
+  // Auto-fetch on mount when enabled
+  useEffect(() => {
+    fetchGeoData();
+  }, [fetchGeoData]);
 
   return { data, loading, error, refetch: fetchGeoData };
 }

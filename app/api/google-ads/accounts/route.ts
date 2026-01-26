@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { db } from "@/db";
@@ -11,7 +12,8 @@ import { eq, desc, and } from "drizzle-orm";
  * Fetches all connected Google Ads accounts for the authenticated user.
  * Returns account information including connection status and last sync time.
  */
-export async function GET(request: NextRequest) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function GET(_request: NextRequest) {
   try {
     // Get authenticated session
     const session = await auth.api.getSession({ headers: await headers() });

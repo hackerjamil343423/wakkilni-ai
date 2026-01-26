@@ -40,8 +40,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const now = new Date();
-
     if (all) {
       // Get all accounts before deletion (for cache invalidation)
       const accountsToDelete = await db

@@ -89,24 +89,30 @@ export function transformCampaign(data: any): Campaign {
   const metrics = data.metrics;
   const budget = data.campaign_budget;
 
+  const spend = microsToValue(metrics.cost_micros || 0);
+  // conversions_value is already in currency units, NOT micros
+  const conversionValue = parseFloat(metrics.conversions_value || "0");
+
   return {
     id: campaign.id.toString(),
     name: campaign.name,
     type: mapCampaignType(campaign.advertising_channel_type),
     status: mapStatus(campaign.status),
     budget: budget ? microsToValue(budget.amount_micros) : 0,
-    spend: microsToValue(metrics.cost_micros || 0),
+    spend,
     impressions: parseInt(metrics.impressions || "0"),
     clicks: parseInt(metrics.clicks || "0"),
     conversions: parseFloat(metrics.conversions || "0"),
-    conversionValue: microsToValue(metrics.conversions_value || 0),
+    conversionValue,
     ctr: decimalToPercentage(metrics.ctr || 0),
     avgCpc: microsToValue(metrics.average_cpc || 0),
     cpa: microsToValue(metrics.cost_per_conversion || 0),
-    roas: parseFloat(metrics.value_per_cost || "0"),
-    searchImpressionShare: decimalToPercentage(metrics.search_impression_share || 0),
-    searchLostIsRank: decimalToPercentage(metrics.search_rank_lost_impression_share || 0),
-    searchLostIsBudget: decimalToPercentage(metrics.search_budget_lost_impression_share || 0),
+    // Calculate ROAS manually: conversionValue / spend
+    roas: spend > 0 ? conversionValue / spend : 0,
+    // Keep impression share as decimal (0-1), display layer will convert to percentage
+    searchImpressionShare: metrics.search_impression_share || 0,
+    searchLostIsRank: metrics.search_rank_lost_impression_share || 0,
+    searchLostIsBudget: metrics.search_budget_lost_impression_share || 0,
   };
 }
 
@@ -169,18 +175,24 @@ export function transformMetrics(data: any): DailyMetrics {
   const segments = data.segments;
   const metrics = data.metrics;
 
+  const spend = microsToValue(metrics.cost_micros || 0);
+  // conversions_value is already in currency units, NOT micros
+  const conversionValue = parseFloat(metrics.conversions_value || "0");
+
   return {
     date: segments.date,
-    spend: microsToValue(metrics.cost_micros || 0),
+    spend,
     impressions: parseInt(metrics.impressions || "0"),
     clicks: parseInt(metrics.clicks || "0"),
     conversions: parseFloat(metrics.conversions || "0"),
-    conversionValue: microsToValue(metrics.conversions_value || 0),
+    conversionValue,
     ctr: decimalToPercentage(metrics.ctr || 0),
     avgCpc: microsToValue(metrics.average_cpc || 0),
     cpa: microsToValue(metrics.cost_per_conversion || 0),
-    roas: parseFloat(metrics.value_per_cost || "0"),
-    searchImpressionShare: decimalToPercentage(metrics.search_impression_share || 0),
+    // Calculate ROAS manually: conversionValue / spend
+    roas: spend > 0 ? conversionValue / spend : 0,
+    // Keep impression share as decimal (0-1), display layer will convert to percentage
+    searchImpressionShare: metrics.search_impression_share || 0,
   };
 }
 
@@ -218,6 +230,8 @@ export function transformGeoPerformance(data: any): GeoPerformance {
 
   const spend = microsToValue(metrics.cost_micros || 0);
   const conversions = parseFloat(metrics.conversions || "0");
+  // conversions_value is already in currency units, NOT micros
+  const conversionValue = parseFloat(metrics.conversions_value || "0");
 
   return {
     countryCode,
@@ -226,7 +240,8 @@ export function transformGeoPerformance(data: any): GeoPerformance {
     impressions: parseInt(metrics.impressions || "0"),
     clicks: parseInt(metrics.clicks || "0"),
     conversions,
-    roas: parseFloat(metrics.value_per_cost || "0"),
+    // Calculate ROAS manually: conversionValue / spend
+    roas: spend > 0 ? conversionValue / spend : 0,
     ctr: decimalToPercentage(metrics.ctr || 0),
     cpa: conversions > 0 ? spend / conversions : 0,
   };

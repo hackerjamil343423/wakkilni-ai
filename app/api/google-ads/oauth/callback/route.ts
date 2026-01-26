@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
           maxDelayMs: 30000,
           shouldRetry: (error: Error) => {
             // Retry on network errors
-            const errorCode = (error as NodeJS.ErrnoException).code;
+            const _errorCode = (error as NodeJS.ErrnoException).code;
             const isNetworkError = isRetryableError(error);
 
             // Also retry on Google Ads API-specific errors

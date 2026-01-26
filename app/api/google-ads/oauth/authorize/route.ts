@@ -15,7 +15,7 @@ import { generateAuthUrl } from "@/lib/google-ads/oauth-client";
  *
  * After user grants permission, Google redirects to /api/google-ads/oauth/callback
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Get authenticated session
     const session = await auth.api.getSession({ headers: await headers() });

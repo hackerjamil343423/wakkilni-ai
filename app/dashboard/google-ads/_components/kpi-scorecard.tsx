@@ -8,7 +8,9 @@ import { cn } from "@/lib/utils";
 
 interface KPIScorecardProps {
   campaigns: Campaign[];
+  previousCampaigns?: Campaign[];
   keywords?: Keyword[];
+  previousKeywords?: Keyword[];
 }
 
 const KPI_ICONS: Record<string, React.ElementType> = {
@@ -20,98 +22,127 @@ const KPI_ICONS: Record<string, React.ElementType> = {
   "Avg. Quality Score": Percent,
 };
 
-export function KPIScorecard({ campaigns, keywords = [] }: KPIScorecardProps) {
+export function KPIScorecard({
+  campaigns,
+  previousCampaigns = [],
+  keywords = [],
+  previousKeywords = []
+}: KPIScorecardProps) {
   const kpis = useMemo(() => {
     const metrics: KPIMetric[] = [];
+    const hasPreviousData = previousCampaigns.length > 0;
+
+    // Current period totals
+    const totalSpend = campaigns.reduce((sum, c) => sum + c.spend, 0);
+    const totalConversions = campaigns.reduce((sum, c) => sum + c.conversions, 0);
+    const totalConversionValue = campaigns.reduce((sum, c) => sum + c.conversionValue, 0);
+
+    // Previous period totals (real data)
+    const prevTotalSpend = previousCampaigns.reduce((sum, c) => sum + c.spend, 0);
+    const prevTotalConversions = previousCampaigns.reduce((sum, c) => sum + c.conversions, 0);
+    const prevTotalConversionValue = previousCampaigns.reduce((sum, c) => sum + c.conversionValue, 0);
+
+    // Helper to calculate change percentage
+    const calcChange = (current: number, previous: number): number => {
+      if (!hasPreviousData || previous === 0) return 0;
+      return ((current - previous) / previous) * 100;
+    };
 
     // Total Spend
-    const totalSpend = campaigns.reduce((sum, c) => sum + c.spend, 0);
-    const prevSpend = totalSpend * 0.85;
+    const spendChange = calcChange(totalSpend, prevTotalSpend);
     metrics.push({
       title: "Total Spend",
       value: totalSpend,
-      change: ((totalSpend - prevSpend) / prevSpend) * 100,
-      trend: totalSpend >= prevSpend ? "up" : "down",
+      change: spendChange,
+      trend: spendChange >= 0 ? "up" : "down",
       format: "currency",
       sparklineData: generateSparkline(totalSpend),
       isGood: true,
     });
 
-    // ROAS
-    const totalConversions = campaigns.reduce((sum, c) => sum + c.conversions, 0);
-    const totalConversionValue = campaigns.reduce((sum, c) => sum + c.conversionValue, 0);
-    const roas = totalConversions > 0 ? totalConversionValue / totalSpend : 0;
-    const prevRoas = roas * 0.95;
+    // ROAS (Return on Ad Spend)
+    const roas = totalSpend > 0 ? totalConversionValue / totalSpend : 0;
+    const prevRoas = prevTotalSpend > 0 ? prevTotalConversionValue / prevTotalSpend : 0;
+    const roasChange = calcChange(roas, prevRoas);
     metrics.push({
       title: "ROAS",
       value: roas,
-      change: ((roas - prevRoas) / prevRoas) * 100,
-      trend: roas >= prevRoas ? "up" : "down",
+      change: roasChange,
+      trend: roasChange >= 0 ? "up" : "down",
       format: "ratio",
       sparklineData: generateSparkline(roas),
       isGood: roas >= 2,
     });
 
-    // CPA
+    // CPA (Cost Per Acquisition)
     const cpa = totalConversions > 0 ? totalSpend / totalConversions : 0;
-    const prevCpa = cpa * 1.05;
+    const prevCpa = prevTotalConversions > 0 ? prevTotalSpend / prevTotalConversions : 0;
+    // For CPA, lower is better, so invert the change display
+    const cpaChange = calcChange(cpa, prevCpa);
     metrics.push({
       title: "CPA",
       value: cpa,
-      change: ((prevCpa - cpa) / cpa) * 100,
-      trend: cpa <= prevCpa ? "up" : "down",
+      change: -cpaChange, // Negative change is good for CPA
+      trend: cpa <= prevCpa || prevCpa === 0 ? "up" : "down",
       format: "currency",
       sparklineData: generateSparkline(cpa),
       isGood: cpa < 50,
     });
 
     // Conversions
-    const prevConversions = totalConversions * 0.92;
+    const conversionsChange = calcChange(totalConversions, prevTotalConversions);
     metrics.push({
       title: "Conversions",
       value: totalConversions,
-      change: ((totalConversions - prevConversions) / prevConversions) * 100,
-      trend: totalConversions >= prevConversions ? "up" : "down",
+      change: conversionsChange,
+      trend: conversionsChange >= 0 ? "up" : "down",
       format: "number",
       sparklineData: generateSparkline(totalConversions),
       isGood: true,
     });
 
-    // Search Impression Share
-    const impressionShare =
-      campaigns
-        .filter((c) => c.searchImpressionShare)
-        .reduce((sum, c) => sum + (c.searchImpressionShare || 0), 0) /
-      campaigns.filter((c) => c.searchImpressionShare).length || 0;
-    const prevIS = impressionShare * 0.98;
+    // Search Impression Share (now stored as decimal 0-1)
+    const campaignsWithIS = campaigns.filter((c) => c.searchImpressionShare != null && c.searchImpressionShare > 0);
+    const impressionShare = campaignsWithIS.length > 0
+      ? campaignsWithIS.reduce((sum, c) => sum + (c.searchImpressionShare || 0), 0) / campaignsWithIS.length
+      : 0;
+
+    const prevCampaignsWithIS = previousCampaigns.filter((c) => c.searchImpressionShare != null && c.searchImpressionShare > 0);
+    const prevImpressionShare = prevCampaignsWithIS.length > 0
+      ? prevCampaignsWithIS.reduce((sum, c) => sum + (c.searchImpressionShare || 0), 0) / prevCampaignsWithIS.length
+      : 0;
+
+    const isChange = calcChange(impressionShare, prevImpressionShare);
     metrics.push({
       title: "Search Impr. Share",
       value: impressionShare,
-      change: ((impressionShare - prevIS) / prevIS) * 100,
-      trend: impressionShare >= prevIS ? "up" : "down",
+      change: isChange,
+      trend: isChange >= 0 ? "up" : "down",
       format: "percentage",
       sparklineData: generateSparkline(impressionShare),
       isGood: impressionShare > 0.5,
     });
 
     // Average Quality Score
-    const avgQS =
-      keywords.length > 0
-        ? keywords.reduce((sum, k) => sum + k.qualityScore, 0) / keywords.length
-        : 7;
-    const prevQS = avgQS * 0.99;
+    const avgQS = keywords.length > 0
+      ? keywords.reduce((sum, k) => sum + k.qualityScore, 0) / keywords.length
+      : 0;
+    const prevAvgQS = previousKeywords.length > 0
+      ? previousKeywords.reduce((sum, k) => sum + k.qualityScore, 0) / previousKeywords.length
+      : 0;
+    const qsChange = hasPreviousData && prevAvgQS > 0 ? avgQS - prevAvgQS : 0;
     metrics.push({
       title: "Avg. Quality Score",
       value: avgQS,
-      change: avgQS - prevQS,
-      trend: avgQS >= prevQS ? "up" : "down",
+      change: qsChange,
+      trend: qsChange >= 0 ? "up" : "down",
       format: "number",
-      sparklineData: generateSparkline(avgQS),
+      sparklineData: generateSparkline(avgQS || 5),
       isGood: avgQS >= 6,
     });
 
     return metrics;
-  }, [campaigns, keywords]);
+  }, [campaigns, previousCampaigns, keywords, previousKeywords]);
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">

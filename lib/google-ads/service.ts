@@ -210,6 +210,7 @@ export class GoogleAdsService {
 
   /**
    * Fetch daily aggregated metrics
+   * Uses 'customer' resource for account-level aggregation (one row per date)
    */
   async getDailyMetrics(filters: MetricsFilters): Promise<DailyMetrics[]> {
     try {
@@ -220,6 +221,8 @@ export class GoogleAdsService {
 
       const dateRange = this.buildDateRange(filters.startDate, filters.endDate);
 
+      // Use 'customer' resource for account-level aggregation
+      // This returns one row per date with totals across all campaigns
       const query = `
         SELECT
           segments.date,
@@ -232,9 +235,8 @@ export class GoogleAdsService {
           metrics.average_cpc,
           metrics.cost_per_conversion,
           metrics.search_impression_share
-        FROM campaign
-        WHERE campaign.status != 'REMOVED'
-          AND segments.date BETWEEN ${dateRange}
+        FROM customer
+        WHERE segments.date BETWEEN ${dateRange}
         ORDER BY segments.date ASC
       `;
 
@@ -326,6 +328,7 @@ export class GoogleAdsService {
           metrics.clicks,
           metrics.cost_micros,
           metrics.conversions,
+          metrics.conversions_value,
           metrics.ctr
         FROM geographic_view
         WHERE geographic_view.location_type = 'LOCATION_OF_PRESENCE'

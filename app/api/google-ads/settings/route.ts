@@ -4,22 +4,13 @@ import { headers } from "next/headers";
 import {
   getUserSettings,
   updateUserSettings,
-  setDefaultAccount,
-  updateDashboardLayout,
-  updateKpiSelection,
-  updateChartPreferences,
-  updateAlertThresholds,
-  toggleEmailAlerts,
-  toggleWeeklyReports,
-  updateCurrencyDisplay,
-  updateTimezone,
 } from "@/lib/google-ads/user-settings";
 
 /**
  * GET /api/google-ads/settings
  * Get user settings
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await auth.api.getSession({ headers: await headers() });
 

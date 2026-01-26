@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { DashboardHeader } from "./_components/dashboard-header";
 import { KPIScorecard } from "./_components/kpi-scorecard";
@@ -13,7 +13,7 @@ import { VideoEngagementFunnel } from "./_components/video-engagement-funnel";
 import { GeoPerformanceMap } from "./_components/geo-performance-map";
 import { DaypartingHeatmap } from "./_components/dayparting-heatmap";
 import { AudienceDemographics } from "./_components/audience-demographics";
-import { ConnectAccountPrompt } from "./_components/connect-account-prompt";
+// ConnectAccountPrompt available for future use
 import { ConnectionStatus } from "./_components/connection-status";
 import {
   useCampaigns,
@@ -32,15 +32,18 @@ import {
   generateHourlyData,
   generateQualityScoreMatrix,
 } from "./mock-data";
-import { DashboardFilters } from "./types";
 import {
-  BarChart3,
-  Search,
-  Zap,
-  Video,
-  Globe,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
+  DashboardFilters,
+  AdGroup,
+  SearchTerm,
+  AssetGroup,
+  ListingGroup,
+  VideoPerformance,
+  DemographicPerformance,
+  HourlyPerformance,
+  QualityScoreDataPoint,
+} from "./types";
+// Icons available: BarChart3, Search, Zap, Video, Globe from "lucide-react"
 
 type TabId = "overview" | "search" | "pmax" | "video" | "audience";
 
@@ -59,6 +62,15 @@ export default function GoogleAdsDashboard() {
   // Connection management
   const { connected, activeCustomerId, loading: connectionLoading } = useGoogleAdsConnection();
 
+  // Calculate previous period date range (same duration, shifted back)
+  const previousDateRange = useMemo(() => {
+    const duration = filters.dateRange.endDate.getTime() - filters.dateRange.startDate.getTime();
+    return {
+      startDate: new Date(filters.dateRange.startDate.getTime() - duration),
+      endDate: new Date(filters.dateRange.endDate.getTime() - duration),
+    };
+  }, [filters.dateRange]);
+
   // Fetch data from API (only when connected and activeCustomerId is set)
   const {
     data: campaigns,
@@ -68,6 +80,17 @@ export default function GoogleAdsDashboard() {
     customerId: activeCustomerId || "",
     startDate: filters.dateRange.startDate,
     endDate: filters.dateRange.endDate,
+    enabled: connected && !!activeCustomerId,
+  });
+
+  // Fetch previous period campaigns for comparison
+  const {
+    data: previousCampaigns,
+    refetch: refetchPrevCampaigns
+  } = useCampaigns({
+    customerId: activeCustomerId || "",
+    startDate: previousDateRange.startDate,
+    endDate: previousDateRange.endDate,
     enabled: connected && !!activeCustomerId,
   });
 
@@ -84,7 +107,6 @@ export default function GoogleAdsDashboard() {
 
   const {
     data: keywords,
-    loading: keywordsLoading,
     refetch: refetchKeywords
   } = useKeywords({
     customerId: activeCustomerId || "",
@@ -93,9 +115,19 @@ export default function GoogleAdsDashboard() {
     enabled: connected && !!activeCustomerId,
   });
 
+  // Fetch previous period keywords for comparison
+  const {
+    data: previousKeywords,
+    refetch: refetchPrevKeywords
+  } = useKeywords({
+    customerId: activeCustomerId || "",
+    startDate: previousDateRange.startDate,
+    endDate: previousDateRange.endDate,
+    enabled: connected && !!activeCustomerId,
+  });
+
   const {
     data: geoData,
-    loading: geoLoading,
     refetch: refetchGeo
   } = useGeoPerformance({
     customerId: activeCustomerId || "",
@@ -105,14 +137,14 @@ export default function GoogleAdsDashboard() {
   });
 
   // Generate mock data for features not yet implemented in API
-  const [adGroups, setAdGroups] = useState<any[]>([]);
-  const [searchTerms, setSearchTerms] = useState<any[]>([]);
-  const [assetGroups, setAssetGroups] = useState<any[]>([]);
-  const [listingGroups, setListingGroups] = useState<any[]>([]);
-  const [videos, setVideos] = useState<any[]>([]);
-  const [demographics, setDemographics] = useState<any[]>([]);
-  const [hourlyData, setHourlyData] = useState<any[]>([]);
-  const [qualityScoreMatrix, setQualityScoreMatrix] = useState<any[]>([]);
+  const [, setAdGroups] = useState<AdGroup[]>([]);
+  const [searchTerms, setSearchTerms] = useState<SearchTerm[]>([]);
+  const [assetGroups, setAssetGroups] = useState<AssetGroup[]>([]);
+  const [listingGroups, setListingGroups] = useState<ListingGroup[]>([]);
+  const [videos, setVideos] = useState<VideoPerformance[]>([]);
+  const [demographics, setDemographics] = useState<DemographicPerformance[]>([]);
+  const [hourlyData, setHourlyData] = useState<HourlyPerformance[]>([]);
+  const [qualityScoreMatrix, setQualityScoreMatrix] = useState<QualityScoreDataPoint[]>([]);
 
   // Generate supplementary mock data when we have real campaign data
   useEffect(() => {
@@ -144,8 +176,10 @@ export default function GoogleAdsDashboard() {
 
   const handleRefresh = () => {
     refetchCampaigns();
+    refetchPrevCampaigns();
     refetchMetrics();
     refetchKeywords();
+    refetchPrevKeywords();
     refetchGeo();
   };
 
@@ -221,7 +255,12 @@ export default function GoogleAdsDashboard() {
               {/* Overview Tab */}
               {activeTab === "overview" && (
                 <div className="space-y-6">
-                  <KPIScorecard campaigns={filteredCampaigns} keywords={keywords} />
+                  <KPIScorecard
+                    campaigns={filteredCampaigns}
+                    previousCampaigns={previousCampaigns}
+                    keywords={keywords}
+                    previousKeywords={previousKeywords}
+                  />
                   <TrendAnalysisChart
                     data={dailyMetrics}
                     primaryMetric="spend"

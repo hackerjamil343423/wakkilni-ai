@@ -5,7 +5,6 @@ import {
   getAccountSnapshots,
   getLatestSnapshot,
   createSnapshotFromCampaigns,
-  compareSnapshots,
 } from "@/lib/google-ads/snapshots";
 import { GoogleAdsService } from "@/lib/google-ads/service";
 import { requireSnapshotOwnership } from "@/lib/google-ads/ownership";
