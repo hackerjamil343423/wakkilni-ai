@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { authClient } from "@/lib/auth-client";
+import { paymentClient, usePayment } from "@/lib/payment/client";
 import { Check } from "lucide-react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -45,6 +46,8 @@ export default function PricingTable({
 }: PricingTableProps) {
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const { provider } = usePayment();
+  const wouldUsePaymob = provider === "paymob";
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -65,20 +68,23 @@ export default function PricingTable({
     }
 
     try {
-      await authClient.checkout({
-        products: [productId],
-        slug: slug,
-      });
+      // Use the unified payment client (auto-selects provider based on location)
+      await paymentClient.checkout({ productId, slug });
     } catch (error) {
       console.error("Checkout failed:", error);
-      // TODO: Add user-facing error notification
       toast.error("Oops, something went wrong");
     }
   };
 
   const handleManageSubscription = async () => {
     try {
-      await authClient.customer.portal();
+      // For Polar, use the auth client portal
+      // For Paymob, redirect to our custom management page
+      if (subscriptionDetails.subscription?.id) {
+        await paymentClient.customerPortal(subscriptionDetails.subscription.id);
+      } else {
+        await authClient.customer.portal();
+      }
     } catch (error) {
       console.error("Failed to open customer portal:", error);
       toast.error("Failed to open subscription management");
@@ -117,6 +123,14 @@ export default function PricingTable({
         <p className="text-xl text-muted-foreground">
           Test out this starter kit using this fake subscription.
         </p>
+        {provider && (
+          <div className="mt-4">
+            <Badge variant="outline" className="text-xs">
+              Payment via {provider === "paymob" ? "Paymob" : "Polar"}
+              {wouldUsePaymob && " (KSA/GCC)"}
+            </Badge>
+          </div>
+        )}
       </div>
 
       <div className="grid md:grid-cols-2 gap-8 max-w-4xl w-full">

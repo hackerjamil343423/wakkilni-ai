@@ -6,12 +6,27 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { getSubscriptionDetails } from "@/lib/subscription";
+import { db } from "@/db/drizzle";
+import { subscription } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import Link from "next/link";
 import ManageSubscription from "./_components/manage-subscription";
 
 export default async function PaymentPage() {
   const subscriptionDetails = await getSubscriptionDetails();
+
+  // Get payment provider for the subscription
+  let paymentProvider: string | null = null;
+  if (subscriptionDetails.subscription?.id) {
+    const [subRecord] = await db
+      .select({ paymentProvider: subscription.paymentProvider })
+      .from(subscription)
+      .where(eq(subscription.id, subscriptionDetails.subscription.id))
+      .limit(1);
+    paymentProvider = subRecord?.paymentProvider || "polar";
+  }
 
   return (
     <div>
@@ -64,10 +79,19 @@ export default async function PaymentPage() {
           ) : (
             <Card>
               <CardHeader>
-                <CardTitle>Subscription Details</CardTitle>
-                <CardDescription>
-                  Your current subscription information
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Subscription Details</CardTitle>
+                    <CardDescription>
+                      Your current subscription information
+                    </CardDescription>
+                  </div>
+                  {paymentProvider && (
+                    <Badge variant="outline">
+                      {paymentProvider === "paymob" ? "Paymob" : "Polar"}
+                    </Badge>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -106,6 +130,28 @@ export default async function PaymentPage() {
                       ).toLocaleDateString()}
                     </p>
                   </div>
+                  {paymentProvider && (
+                    <>
+                      <div>
+                        <p className="text-sm font-semibold text-muted-foreground">
+                          Payment Provider
+                        </p>
+                        <p className="text-md capitalize">
+                          {paymentProvider === "paymob" ? "Paymob" : "Polar"}
+                        </p>
+                      </div>
+                      {paymentProvider === "paymob" && (
+                        <div>
+                          <p className="text-sm font-semibold text-muted-foreground">
+                            Payment Methods
+                          </p>
+                          <p className="text-md text-sm">
+                            Card, MADA, Tabby, Tamara, Apple Pay, Google Pay, stcPay
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
                 {subscriptionDetails.subscription.cancelAtPeriodEnd && (
                   <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">

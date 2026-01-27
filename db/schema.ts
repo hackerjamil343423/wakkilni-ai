@@ -14,6 +14,7 @@ export const user = pgTable("user", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("emailVerified").notNull().default(false),
   image: text("image"),
+  country: text("country"), // ISO 3166-1 alpha-2 country code for regional provider detection
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });
@@ -83,6 +84,14 @@ export const subscription = pgTable("subscription", {
   metadata: text("metadata"), // JSON string
   customFieldData: text("customFieldData"), // JSON string
   userId: text("userId").references(() => user.id),
+
+  // Payment provider tracking (supports dual-provider system)
+  paymentProvider: text("paymentProvider").notNull().default("polar"), // 'polar' | 'paymob'
+
+  // Paymob-specific fields (nullable for backward compatibility)
+  paymobIntentionId: text("paymobIntentionId"),
+  paymobSubscriptionPlanId: integer("paymobSubscriptionPlanId"),
+  paymobCustomerId: text("paymobCustomerId"),
 });
 
 // ============================================================================
