@@ -4,7 +4,6 @@ import { ThemeProvider } from "../components/provider";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { Inter, Cairo } from "next/font/google";
 import "./globals.css";
-import { Analytics } from "@vercel/analytics/next";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const cairo = Cairo({ subsets: ["arabic"], variable: "--font-cairo" });
@@ -49,7 +48,6 @@ export default function RootLayout({
           >
             {children}
             <Toaster />
-            <Analytics />
           </ThemeProvider>
         </LanguageProvider>
       </body>
