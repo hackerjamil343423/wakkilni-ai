@@ -29,6 +29,13 @@
       "when": 1769799830442,
       "tag": "0003_regular_thundra",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1769807428296,
+      "tag": "0004_warm_sersi",
+      "breakpoints": true
     }
   ]
 }
