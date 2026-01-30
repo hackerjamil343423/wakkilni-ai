@@ -120,9 +120,7 @@ export const paymentConfig = pgTable("payment_config", {
   lastTestMessage: text("last_test_message"), // Test result message
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
-}, (table) => ({
-  providerIdx: index("payment_config_provider_idx").on(table.provider),
-}));
+});
 
 // ============================================================================
 // Google Ads Tables

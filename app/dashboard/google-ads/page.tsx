@@ -43,12 +43,14 @@ import {
   HourlyPerformance,
   QualityScoreDataPoint,
 } from "./types";
+import { useTranslation } from "@/hooks/use-translation";
 // Icons available: BarChart3, Search, Zap, Video, Globe from "lucide-react"
 
 type TabId = "overview" | "search" | "pmax" | "video" | "audience";
 
 export default function GoogleAdsDashboard() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [filters, setFilters] = useState<DashboardFilters>({
     dateRange: {
@@ -219,7 +221,7 @@ export default function GoogleAdsDashboard() {
         {/* Header with Connection Status */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold">Google Ads Dashboard</h1>
+            <h1 className="text-3xl font-bold">{t("googleAds.dashboard.title")}</h1>
             <ConnectionStatus
               connected={connected}
               customerId={activeCustomerId}

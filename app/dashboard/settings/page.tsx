@@ -15,11 +15,12 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { authClient } from "@/lib/auth-client";
-import { ExternalLink, Settings2 } from "lucide-react";
+import { ExternalLink, Settings2, Languages } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 import dynamic from "next/dynamic";
+import { LanguageSelector } from "./_components/language-selector";
 
 const TeamContent = dynamic(() => import("../team/page"), {
   ssr: false,
@@ -396,6 +397,22 @@ function SettingsContent() {
               </div>
 
               <Button onClick={handleUpdateProfile}>Save Changes</Button>
+            </CardContent>
+          </Card>
+
+          {/* Language Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Languages className="h-5 w-5" />
+                Language Settings
+              </CardTitle>
+              <CardDescription>
+                Select your preferred language for the interface
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <LanguageSelector />
             </CardContent>
           </Card>
         </TabsContent>

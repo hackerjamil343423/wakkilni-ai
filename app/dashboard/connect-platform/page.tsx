@@ -8,6 +8,7 @@ import { Sparkles } from "lucide-react";
 import { PLATFORMS, PlatformConfig } from "@/lib/platform/config";
 import { PlatformCardMenu } from "./_components/platform-card-menu";
 import { PlatformDisconnectDialog } from "./_components/platform-disconnect-dialog";
+import { useTranslation } from "@/hooks/use-translation";
 
 interface PlatformWithConnection extends PlatformConfig {
   connected: boolean;
@@ -15,6 +16,7 @@ interface PlatformWithConnection extends PlatformConfig {
 
 export default function ConnectPlatformPage() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [platforms, setPlatforms] = useState<PlatformWithConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [disconnectDialogOpen, setDisconnectDialogOpen] = useState(false);
@@ -109,18 +111,18 @@ export default function ConnectPlatformPage() {
   };
 
   const getButtonText = (platform: PlatformWithConnection) => {
-    if (!platform.available) return "Coming Soon";
-    if (platform.connected) return "Manage";
-    return "Connect";
+    if (!platform.available) return t("connectPlatform.comingSoon");
+    if (platform.connected) return t("common.manage");
+    return t("connectPlatform.connect");
   };
 
   return (
     <div className="flex-1 space-y-8 p-8 pt-6">
       {/* Header */}
       <div className="space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Connect your tools</h2>
+        <h2 className="text-3xl font-bold tracking-tight">{t("connectPlatform.title")}</h2>
         <p className="text-muted-foreground text-base">
-          Easily connect your applications and import data directly from contents and documents.
+          {t("connectPlatform.description")}
         </p>
       </div>
 
@@ -139,7 +141,7 @@ export default function ConnectPlatformPage() {
             {!platform.available && (
               <div className="absolute top-4 right-4">
                 <Badge variant="secondary" className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
-                  Coming Soon
+                  {t("connectPlatform.comingSoon")}
                 </Badge>
               </div>
             )}
@@ -210,7 +212,7 @@ export default function ConnectPlatformPage() {
             <Sparkles className="w-3.5 h-3.5 text-white" />
           </div>
           <p className="text-sm text-blue-900 dark:text-blue-100 leading-relaxed">
-            This is just the starting point, and we'll take care of all the hard work from here!
+            {t("connectPlatform.footerMessage")}
           </p>
         </div>
       </div>

@@ -1,8 +1,13 @@
 import { Toaster } from "@/components/ui/sonner";
 import type { Metadata } from "next";
 import { ThemeProvider } from "../components/provider";
+import { LanguageProvider } from "@/context/LanguageContext";
+import { Inter, Cairo } from "next/font/google";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const cairo = Cairo({ subsets: ["arabic"], variable: "--font-cairo" });
 export const metadata: Metadata = {
   title: "Next.js Starter Kit - Launch Your SAAS",
   description:
@@ -33,18 +38,20 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`font-[-apple-system,BlinkMacSystemFont]antialiased`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem
-          forcedTheme="light"
-          disableTransitionOnChange
-        >
-          {children}
-          <Toaster />
-          <Analytics />
-        </ThemeProvider>
+      <body className={`${inter.variable} ${cairo.variable} font-sans antialiased`}>
+        <LanguageProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem
+            forcedTheme="light"
+            disableTransitionOnChange
+          >
+            {children}
+            <Toaster />
+            <Analytics />
+          </ThemeProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

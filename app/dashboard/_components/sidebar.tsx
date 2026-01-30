@@ -15,6 +15,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { usePlatformConnections } from "@/lib/platform/hooks/usePlatformConnections";
 import { getAvailablePlatforms, PlatformConfig } from "@/lib/platform/config";
+import { useTranslation } from "@/hooks/use-translation";
 
 interface NavItem {
   label: string;
@@ -30,45 +31,45 @@ interface NavSection {
 
 const STATIC_NAV_SECTIONS: NavSection[] = [
   {
-    title: "Performance Monitoring",
+    title: "nav.performanceMonitoring",
     items: [
       {
-        label: "Global Overview",
+        label: "nav.globalOverview",
         href: "/dashboard",
         icon: Activity,
       },
     ],
   },
   {
-    title: "AI Intelligence",
+    title: "nav.aiIntelligence",
     items: [
       {
-        label: "AI Agent",
+        label: "nav.aiAgent",
         href: "/dashboard/chat",
         icon: Bot,
       },
       {
-        label: "Smart Insights",
+        label: "nav.smartInsights",
         href: "/dashboard/insights",
         icon: Lightbulb,
       },
     ],
   },
   {
-    title: "Sales",
+    title: "nav.sales",
     items: [
       {
-        label: "E-commerce",
+        label: "nav.ecommerce",
         href: "/dashboard/ecommerce",
         icon: ShoppingCart,
       },
     ],
   },
   {
-    title: "Management",
+    title: "nav.management",
     items: [
       {
-        label: "Notifications",
+        label: "nav.notifications",
         href: "/dashboard/notifications",
         icon: Bell,
       },
@@ -79,19 +80,24 @@ const STATIC_NAV_SECTIONS: NavSection[] = [
 export default function DashboardSideBar() {
   const pathname = usePathname();
   const { isPlatformConnected } = usePlatformConnections();
+  const { t } = useTranslation();
 
   // Build platform nav items dynamically based on connection status
-  const platformNavItems: NavItem[] = getAvailablePlatforms().map((platform) => ({
-    label: platform.shortName,
-    href: platform.dashboardPath,
-    icon: platform.icon,
-    requireConnection: true,
-  }));
+  const platformNavItems: NavItem[] = getAvailablePlatforms().map((platform) => {
+    // Convert platform id to translation key (e.g., "meta-ads" -> "metaAds")
+    const translationKey = platform.id.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+    return {
+      label: `platform.${translationKey}.shortName`,
+      href: platform.dashboardPath,
+      icon: platform.icon,
+      requireConnection: true,
+    };
+  });
 
   // Combine static and dynamic nav items
   const navSections: NavSection[] = [
     {
-      title: "Performance Monitoring",
+      title: "nav.performanceMonitoring",
       items: [
         STATIC_NAV_SECTIONS[0].items[0], // Global Overview
         ...platformNavItems,
@@ -138,7 +144,7 @@ export default function DashboardSideBar() {
               <div key={section.title} className="py-2">
                 <div className="px-5 mb-2">
                   <h3 className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-[0.15em]">
-                    {section.title}
+                    {t(section.title)}
                   </h3>
                 </div>
                 <div className="space-y-1 px-3">
@@ -165,7 +171,7 @@ export default function DashboardSideBar() {
                           pathname === item.href ? "text-primary" : ""
                         )} />
                       </div>
-                      <span>{item.label}</span>
+                      <span>{t(item.label)}</span>
                       {pathname === item.href && (
                         <div className="ml-auto w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                       )}

@@ -1,0 +1,321 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "confirm": "Confirm",
+    "close": "Close",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "import": "Import",
+    "refresh": "Refresh",
+    "viewAll": "View All",
+    "showMore": "Show More",
+    "showLess": "Show Less",
+    "select": "Select",
+    "clear": "Clear",
+    "apply": "Apply",
+    "reset": "Reset",
+    "submit": "Submit",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "continue": "Continue",
+    "done": "Done",
+    "yes": "Yes",
+    "no": "No",
+    "or": "or",
+    "and": "and",
+    "add": "Add",
+    "remove": "Remove",
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "manage": "Manage",
+    "rename": "Rename",
+    "active": "Active",
+    "inactive": "Inactive",
+    "status": "Status",
+    "actions": "Actions",
+    "name": "Name",
+    "email": "Email",
+    "date": "Date",
+    "total": "Total",
+    "account": "Account",
+    "accounts": "Accounts"
+  },
+  "table": {
+    "accountId": "Account ID",
+    "accountName": "Account Name",
+    "lastSynced": "Last Synced",
+    "totalSpend": "Total Spend",
+    "impressions": "Impressions",
+    "clicks": "Clicks",
+    "conversions": "Conversions",
+    "cost": "Cost",
+    "ctr": "CTR",
+    "roas": "ROAS",
+    "cpa": "CPA",
+    "cpc": "CPC",
+    "campaign": "Campaign",
+    "campaigns": "Campaigns",
+    "adGroup": "Ad Group",
+    "adGroups": "Ad Groups",
+    "keyword": "Keyword",
+    "keywords": "Keywords",
+    "ad": "Ad",
+    "ads": "Ads"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "settings": "Settings",
+    "profile": "Profile",
+    "billing": "Billing",
+    "team": "Team",
+    "connectPlatform": "Connect Platform",
+    "signOut": "Sign Out",
+    "globalOverview": "Global Overview",
+    "aiAgent": "AI Agent",
+    "googleAds": "Google Ads",
+    "metaAds": "Meta Ads",
+    "ecommerce": "E-commerce",
+    "performanceMonitoring": "Performance Monitoring",
+    "aiIntelligence": "AI Intelligence",
+    "smartInsights": "Smart Insights",
+    "sales": "Sales",
+    "management": "Management",
+    "notifications": "Notifications"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "languageDescription": "Choose your preferred language for the interface",
+    "displayLanguage": "Display Language",
+    "profile": {
+      "title": "Profile",
+      "name": "Name",
+      "email": "Email",
+      "profilePicture": "Profile Picture",
+      "updateProfile": "Update Profile",
+      "saveChanges": "Save Changes"
+    },
+    "billing": {
+      "title": "Billing",
+      "subscription": "Subscription",
+      "orderHistory": "Order History",
+      "manageSubscription": "Manage Subscription"
+    },
+    "team": {
+      "title": "Team",
+      "members": "Members",
+      "inviteMember": "Invite Member",
+      "removeMember": "Remove Member"
+    }
+  },
+  "auth": {
+    "signIn": {
+      "title": "Sign In",
+      "description": "Enter your credentials to access your account",
+      "email": "Email",
+      "password": "Password",
+      "signInButton": "Sign In",
+      "noAccount": "Don't have an account?",
+      "signUp": "Sign Up",
+      "forgotPassword": "Forgot password?",
+      "signInWithGoogle": "Sign in with Google"
+    },
+    "signUp": {
+      "title": "Sign Up",
+      "description": "Create your account to get started",
+      "name": "Name",
+      "email": "Email",
+      "password": "Password",
+      "confirmPassword": "Confirm Password",
+      "signUpButton": "Sign Up",
+      "hasAccount": "Already have an account?",
+      "signIn": "Sign In",
+      "agreeToTerms": "I agree to the Terms of Service and Privacy Policy"
+    }
+  },
+  "dashboard": {
+    "welcome": "Welcome back",
+    "performanceMonitoring": "Performance Monitoring",
+    "aiIntelligence": "AI Intelligence",
+    "impressions": "Impressions",
+    "clicks": "Clicks",
+    "conversions": "Conversions",
+    "cost": "Cost",
+    "ctr": "CTR",
+    "roas": "ROAS",
+    "last30Days": "Last 30 Days",
+    "last7Days": "Last 7 Days",
+    "today": "Today",
+    "yesterday": "Yesterday"
+  },
+  "platform": {
+    "metaAds": {
+      "name": "Meta Ads",
+      "shortName": "Meta",
+      "description": "Connect your Facebook and Instagram advertising campaigns to monitor performance and optimize your ad spend."
+    },
+    "googleAds": {
+      "name": "Google Ads",
+      "shortName": "Google",
+      "description": "Connect your Google Ads account to track campaigns, keywords, and performance metrics across your search and display ads."
+    },
+    "tiktokAds": {
+      "name": "TikTok Ads",
+      "shortName": "TikTok",
+      "description": "Connect your TikTok advertising campaigns to monitor performance and optimize your ad spend."
+    },
+    "snapchatAds": {
+      "name": "Snapchat Ads",
+      "shortName": "Snapchat",
+      "description": "Connect your Snapchat advertising campaigns to monitor performance and optimize your ad spend."
+    },
+    "googleAnalytics": {
+      "name": "Google Analytics",
+      "shortName": "Analytics",
+      "description": "Connect Google Analytics to track website traffic, user behavior, and conversion metrics."
+    },
+    "salla": {
+      "name": "Salla",
+      "shortName": "Salla",
+      "description": "Connect Salla to track e-commerce performance and sales analytics."
+    },
+    "zid": {
+      "name": "Zid",
+      "shortName": "Zid",
+      "description": "Connect Zid to track e-commerce performance and sales analytics."
+    }
+  },
+  "connectPlatform": {
+    "title": "Connect your tools",
+    "description": "Connect your advertising platforms to track performance and insights",
+    "footerMessage": "This is just the starting point, and we'll take care of all the hard work from here!",
+    "connect": "Connect",
+    "connected": "Connected",
+    "disconnect": "Disconnect",
+    "disconnectTitle": "Disconnect Platform",
+    "disconnectDescription": "Are you sure you want to disconnect this platform?",
+    "disconnectWarning": "This action will:",
+    "disconnectWarning1": "Delete stored authentication tokens",
+    "disconnectWarning2": "Clear cached data for this integration",
+    "confirmDisconnect": "Confirm Disconnect",
+    "comingSoon": "Coming Soon"
+  },
+  "googleAds": {
+    "dashboard": {
+      "title": "Google Ads Dashboard",
+      "overview": "Overview",
+      "campaigns": "Campaigns",
+      "adGroups": "Ad Groups",
+      "keywords": "Keywords"
+    },
+    "connect": {
+      "title": "Connect Your Google Ads Account",
+      "description": "Connect your Google Ads account to start analyzing your campaign performance, discover optimization opportunities, and make data-driven decisions.",
+      "benefits": {
+        "title": "What you'll get:",
+        "benefit1": "Real-time campaign performance metrics and KPIs",
+        "benefit2": "Keyword quality score analysis and optimization insights",
+        "benefit3": "AI-powered recommendations to improve ROAS",
+        "benefit4": "Geographic and demographic performance breakdowns",
+        "benefit5": "Search term mining for negative keyword discovery"
+      },
+      "howItWorks": {
+        "title": "How it works:",
+        "step1": "Click \"Connect Google Ads\" to authorize access",
+        "step2": "Sign in with your Google account",
+        "step3": "Grant read-only access to your Google Ads data",
+        "step4": "Start exploring your analytics dashboard"
+      },
+      "button": "Connect Google Ads Account",
+      "disclaimer": "We only request read-only access. We'll never modify your campaigns.",
+      "privacy": {
+        "title": "Privacy & Security",
+        "description": "Your data is secure and encrypted. We use industry-standard OAuth 2.0 authentication and never store your Google password.",
+        "disconnect": "You can disconnect your account at any time from the dashboard settings."
+      },
+      "signIn": "Sign in with Google",
+      "noAccounts": "No Google Ads accounts found",
+      "noAccountsDescription": "You logged in with a different Google account",
+      "selectAccount": "Select Google Ads Accounts",
+      "startExploring": "Start exploring your analytics dashboard"
+    },
+    "accounts": {
+      "title": "Google Ads Accounts",
+      "noAccounts": "No Google Ads accounts connected",
+      "addAccount": "Add Account",
+      "connectAnother": "Connect Another Account",
+      "manageAccounts": "Manage Accounts",
+      "renameAccount": "Rename Account",
+      "accountName": "Account Name",
+      "primary": "Primary",
+      "setAsPrimary": "Set as Primary"
+    }
+  },
+  "metaAds": {
+    "dashboard": {
+      "title": "Meta Ads Dashboard",
+      "overview": "Overview",
+      "campaigns": "Campaigns",
+      "adSets": "Ad Sets",
+      "ads": "Ads"
+    },
+    "connect": {
+      "title": "Connect Your Meta Ads Account",
+      "description": "Connect your Facebook and Instagram advertising accounts to track performance",
+      "benefits": {
+        "title": "What you'll get:",
+        "benefit1": "Cross-platform campaign performance tracking",
+        "benefit2": "Audience demographics and insights",
+        "benefit3": "Creative performance analysis",
+        "benefit4": "Conversion tracking and attribution"
+      },
+      "signIn": "Connect with Facebook",
+      "startExploring": "Start exploring your analytics dashboard"
+    },
+    "accounts": {
+      "title": "Meta Ads Accounts",
+      "noAccounts": "No Meta Ads accounts connected",
+      "addAccount": "Add Account",
+      "manageAccounts": "Manage Accounts"
+    }
+  },
+  "disconnectDialog": {
+    "title": "Disconnect Platform",
+    "description": "Are you sure you want to disconnect",
+    "warning": "This action will:",
+    "warning1": "Delete stored authentication tokens",
+    "warning2": "Clear cached data for this integration",
+    "reconnectNote": "You can reconnect anytime by going through the authorization flow again.",
+    "confirm": "Disconnect",
+    "cancel": "Cancel",
+    "disconnecting": "Disconnecting..."
+  },
+  "validation": {
+    "required": "This field is required",
+    "invalidEmail": "Please enter a valid email address",
+    "passwordTooShort": "Password must be at least 8 characters",
+    "passwordsDoNotMatch": "Passwords do not match",
+    "invalidUrl": "Please enter a valid URL"
+  },
+  "errors": {
+    "somethingWentWrong": "Something went wrong",
+    "tryAgainLater": "Please try again later",
+    "networkError": "Network error. Please check your connection.",
+    "unauthorized": "You are not authorized to perform this action",
+    "notFound": "The requested resource was not found"
+  },
+  "success": {
+    "saved": "Changes saved successfully",
+    "deleted": "Item deleted successfully",
+    "updated": "Item updated successfully",
+    "created": "Item created successfully",
+    "connected": "Platform connected successfully",
+    "disconnected": "Platform disconnected successfully"
+  }
+}

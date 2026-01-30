@@ -252,3 +252,48 @@
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(0, 0, 0, 0.2);
 }
+
+/* RTL Support */
+[dir="rtl"] {
+    direction: rtl;
+}
+
+/* RTL: Flip icons and directional elements */
+[dir="rtl"] .rtl-flip {
+    transform: scaleX(-1);
+}
+
+/* RTL: Adjust spacing utilities */
+[dir="rtl"] .rtl-space-start {
+    padding-left: 0;
+    padding-right: var(--spacing);
+}
+
+[dir="rtl"] .rtl-space-end {
+    padding-right: 0;
+    padding-left: var(--spacing);
+}
+
+/* RTL: Text alignment for Arabic */
+[dir="rtl"] body {
+    text-align: right;
+}
+
+[dir="rtl"] .text-left {
+    text-align: right;
+}
+
+[dir="rtl"] .text-right {
+    text-align: left;
+}
+
+/* RTL: Flex direction for icons/buttons */
+[dir="rtl"] .icon-left {
+    margin-left: 0.5rem;
+    margin-right: 0;
+}
+
+[dir="rtl"] .icon-right {
+    margin-right: 0.5rem;
+    margin-left: 0;
+}
