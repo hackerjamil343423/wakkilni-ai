@@ -88,7 +88,7 @@ export default async function PaymentPage() {
                   </div>
                   {paymentProvider && (
                     <Badge variant="outline">
-                      {paymentProvider === "paymob" ? "Paymob" : "Polar"}
+                      {paymentProvider === "paymob" ? "Paymob" : paymentProvider === "streampay" ? "Streampay" : "Polar"}
                     </Badge>
                   )}
                 </div>
@@ -137,7 +137,7 @@ export default async function PaymentPage() {
                           Payment Provider
                         </p>
                         <p className="text-md capitalize">
-                          {paymentProvider === "paymob" ? "Paymob" : "Polar"}
+                          {paymentProvider === "paymob" ? "Paymob" : paymentProvider === "streampay" ? "Streampay" : "Polar"}
                         </p>
                       </div>
                       {paymentProvider === "paymob" && (
@@ -147,6 +147,16 @@ export default async function PaymentPage() {
                           </p>
                           <p className="text-md text-sm">
                             Card, MADA, Tabby, Tamara, Apple Pay, Google Pay, stcPay
+                          </p>
+                        </div>
+                      )}
+                      {paymentProvider === "streampay" && (
+                        <div>
+                          <p className="text-sm font-semibold text-muted-foreground">
+                            Payment Methods
+                          </p>
+                          <p className="text-md text-sm">
+                            Payment Links (Card, Apple Pay, MADA)
                           </p>
                         </div>
                       )}

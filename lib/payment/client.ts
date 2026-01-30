@@ -56,7 +56,7 @@ export const paymentClient = {
    * Create checkout session with specific provider
    */
   async checkoutWithProvider(
-    provider: "polar" | "paymob",
+    provider: "polar" | "paymob" | "streampay",
     options: CheckoutOptions
   ): Promise<CheckoutResult> {
     const response = await fetch(`${API_BASE}/api/payment/checkout`, {
@@ -130,7 +130,7 @@ export const paymentClient = {
   /**
    * Get user's payment provider (client-side detection)
    */
-  async getProvider(): Promise<"polar" | "paymob"> {
+  async getProvider(): Promise<"polar" | "paymob" | "streampay"> {
     try {
       // Try server-side detection first
       const response = await fetch(`${API_BASE}/api/payment/provider`);
@@ -168,7 +168,7 @@ export const paymentClient = {
 import { useEffect, useState } from "react";
 
 export interface UsePaymentResult {
-  provider: "polar" | "paymob" | null;
+  provider: "polar" | "paymob" | "streampay" | null;
   country: string | null;
   loading: boolean;
   error: string | null;
@@ -222,8 +222,8 @@ export function usePayment(): UsePaymentResult {
 /**
  * Format currency based on provider and currency code
  */
-export function formatCurrency(amount: number, currency: string, provider: "polar" | "paymob"): string {
-  const locale = provider === "paymob" ? "ar-SA" : "en-US";
+export function formatCurrency(amount: number, currency: string, provider: "polar" | "paymob" | "streampay"): string {
+  const locale = provider === "paymob" || provider === "streampay" ? "ar-SA" : "en-US";
 
   return new Intl.NumberFormat(locale, {
     style: "currency",
@@ -253,10 +253,11 @@ export function getCurrencySymbol(currency: string): string {
 /**
  * Get provider name for display
  */
-export function getProviderName(provider: "polar" | "paymob"): string {
+export function getProviderName(provider: "polar" | "paymob" | "streampay"): string {
   const names = {
     polar: "Polar",
     paymob: "Paymob",
+    streampay: "Streampay",
   };
 
   return names[provider];
@@ -265,10 +266,11 @@ export function getProviderName(provider: "polar" | "paymob"): string {
 /**
  * Get localized payment methods for a provider
  */
-export function getPaymentMethods(provider: "polar" | "paymob"): string[] {
+export function getPaymentMethods(provider: "polar" | "paymob" | "streampay"): string[] {
   const methods = {
     polar: ["Credit Card", "Debit Card", "Apple Pay", "Google Pay"],
     paymob: ["Credit Card", "MADA", "Tabby", "Tamara", "Apple Pay", "Google Pay", "stcPay"],
+    streampay: ["Card", "Apple Pay", "MADA"],
   };
 
   return methods[provider];

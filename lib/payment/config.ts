@@ -43,6 +43,20 @@ export const POLAR_CONFIG = {
 } as const;
 
 /**
+ * Streampay configuration
+ */
+export const STREAMPAY_CONFIG = {
+  apiKey: process.env.STREAMPAY_API_KEY || "",
+  apiSecret: process.env.STREAMPAY_API_SECRET || "",
+  webhookSecret: process.env.STREAMPAY_WEBHOOK_SECRET || "",
+  apiUrl: process.env.STREAMPAY_API_URL || "https://stream-app-service.streampay.sa/api/v2",
+  sandbox: process.env.STREAMPAY_SANDBOX !== "false", // Default to sandbox
+  starterProductId: process.env.STREAMPAY_STARTER_PRODUCT_ID || "",
+  supportedCountries: ["SA", "AE", "KW", "QA", "BH", "OM"], // KSA/GCC
+  currency: "SAR",
+} as const;
+
+/**
  * App URLs
  */
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -61,9 +75,14 @@ export const PAYMOB_SUPPORTED_COUNTRIES: string[] = process.env.PAYMOB_SUPPORTED
 /**
  * All supported countries with their preferred provider
  */
-export const COUNTRY_PROVIDER_MAP: Record<string, PaymentProvider> = Object.fromEntries(
-  PAYMOB_SUPPORTED_COUNTRIES.map((country) => [country, "paymob"])
-);
+export const COUNTRY_PROVIDER_MAP: Record<string, PaymentProvider> = {
+  ...Object.fromEntries(
+    PAYMOB_SUPPORTED_COUNTRIES.map((country) => [country, "paymob"])
+  ),
+  ...Object.fromEntries(
+    STREAMPAY_CONFIG.supportedCountries.map((country) => [country, "streampay"])
+  ),
+};
 
 // ============================================================================
 // Product Configuration
@@ -85,6 +104,12 @@ export const PRODUCTS = {
       slug: "starter",
     },
   },
+  streampay: {
+    starter: {
+      id: STREAMPAY_CONFIG.starterProductId,
+      slug: "starter",
+    },
+  },
 } as const;
 
 // ============================================================================
@@ -97,6 +122,7 @@ export const PRODUCTS = {
 export const PROVIDER_CURRENCIES = {
   polar: ["USD", "EUR"],
   paymob: ["SAR", "EGP", "AED", "USD"],
+  streampay: ["SAR"],
 } as const;
 
 /**
@@ -105,6 +131,7 @@ export const PROVIDER_CURRENCIES = {
 export const PROVIDER_DEFAULT_CURRENCY = {
   polar: "USD",
   paymob: "SAR",
+  streampay: "SAR",
 } as const;
 
 // ============================================================================
@@ -145,6 +172,10 @@ export function getAvailableProviders(): PaymentProvider[] {
     providers.push("paymob");
   }
 
+  if (isStreampayConfigured()) {
+    providers.push("streampay");
+  }
+
   return providers;
 }
 
@@ -153,4 +184,16 @@ export function getAvailableProviders(): PaymentProvider[] {
  */
 export function getProviderForCountry(countryCode: string): PaymentProvider {
   return COUNTRY_PROVIDER_MAP[countryCode.toUpperCase()] || DEFAULT_PAYMENT_PROVIDER;
+}
+
+/**
+ * Check if Streampay is properly configured
+ */
+export function isStreampayConfigured(): boolean {
+  return !!(
+    STREAMPAY_CONFIG.apiKey &&
+    STREAMPAY_CONFIG.apiSecret &&
+    STREAMPAY_CONFIG.webhookSecret &&
+    STREAMPAY_CONFIG.starterProductId
+  );
 }

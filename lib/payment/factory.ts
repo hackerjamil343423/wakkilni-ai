@@ -11,6 +11,7 @@ import { detectProviderForCountry } from "./detection";
 // Lazy load providers to avoid circular dependencies
 let polarProviderInstance: IPaymentProvider | null = null;
 let paymobProviderInstance: IPaymentProvider | null = null;
+let streampayProviderInstance: IPaymentProvider | null = null;
 
 /**
  * Get provider instance by name
@@ -30,6 +31,13 @@ async function getProviderInstance(name: PaymentProvider): Promise<IPaymentProvi
         paymobProviderInstance = new PaymobProvider();
       }
       return paymobProviderInstance;
+
+    case "streampay":
+      if (!streampayProviderInstance) {
+        const { StreampayProvider } = await import("./providers/streampay/index");
+        streampayProviderInstance = new StreampayProvider();
+      }
+      return streampayProviderInstance;
 
     default:
       throw new Error(`Unsupported payment provider: ${name}`);
@@ -78,17 +86,24 @@ export class PaymentProviderFactory {
     const providers: PaymentProvider[] = [];
 
     try {
-      const polar = await getProviderInstance("polar");
+      await getProviderInstance("polar");
       providers.push("polar");
     } catch {
       // Polar not configured
     }
 
     try {
-      const paymob = await getProviderInstance("paymob");
+      await getProviderInstance("paymob");
       providers.push("paymob");
     } catch {
       // Paymob not configured
+    }
+
+    try {
+      await getProviderInstance("streampay");
+      providers.push("streampay");
+    } catch {
+      // Streampay not configured
     }
 
     const instances = await Promise.all(
@@ -105,5 +120,6 @@ export class PaymentProviderFactory {
   static resetCache(): void {
     polarProviderInstance = null;
     paymobProviderInstance = null;
+    streampayProviderInstance = null;
   }
 }

@@ -5,7 +5,9 @@ import {
   text,
   timestamp,
   unique,
+  index,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 // Better Auth Tables
 export const user = pgTable("user", {
@@ -15,6 +17,7 @@ export const user = pgTable("user", {
   emailVerified: boolean("emailVerified").notNull().default(false),
   image: text("image"),
   country: text("country"), // ISO 3166-1 alpha-2 country code for regional provider detection
+  preferredLanguage: text("preferredLanguage").notNull().default("en"), // Preferred language: "en" or "ar"
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });
@@ -92,7 +95,34 @@ export const subscription = pgTable("subscription", {
   paymobIntentionId: text("paymobIntentionId"),
   paymobSubscriptionPlanId: integer("paymobSubscriptionPlanId"),
   paymobCustomerId: text("paymobCustomerId"),
+
+  // Streampay-specific fields (nullable for backward compatibility)
+  streampaySubscriptionId: text("streampaySubscriptionId"),
+  streampayConsumerId: text("streampayConsumerId"),
+  streampayPaymentLinkId: text("streampayPaymentLinkId"),
 });
+
+// Payment Configuration table - stores payment provider settings for admin panel
+export const paymentConfig = pgTable("payment_config", {
+  id: text("id").primaryKey(),
+  provider: text("provider").notNull().unique(), // 'polar' | 'paymob' | 'streampay'
+  enabled: boolean("enabled").notNull().default(true),
+  priority: integer("priority").notNull().default(0), // Higher = preferred
+  supportedCountries: text("supported_countries"), // JSON array of country codes
+  sandboxMode: boolean("sandbox_mode").notNull().default(true),
+  apiPublicKey: text("api_public_key"), // API key for authentication
+  apiSecretKey: text("api_secret_key"), // Encrypted secret key
+  webhookUrl: text("webhook_url"), // Webhook URL for the provider
+  webhookSecret: text("webhook_secret"), // Encrypted webhook secret
+  webhookEvents: text("webhook_events"), // JSON array of event types to subscribe to
+  lastTestedAt: timestamp("last_tested_at"), // Last connection test timestamp
+  lastTestStatus: text("last_test_status"), // 'success', 'failed', 'pending'
+  lastTestMessage: text("last_test_message"), // Test result message
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+}, (table) => ({
+  providerIdx: index("payment_config_provider_idx").on(table.provider),
+}));
 
 // ============================================================================
 // Google Ads Tables

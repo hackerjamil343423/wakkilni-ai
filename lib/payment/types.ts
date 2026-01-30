@@ -7,7 +7,7 @@
 // Core Types
 // ============================================================================
 
-export type PaymentProvider = "polar" | "paymob";
+export type PaymentProvider = "polar" | "paymob" | "streampay";
 
 export type SubscriptionStatus = "active" | "canceled" | "revoked" | "past_due" | "incomplete";
 
@@ -67,6 +67,9 @@ export interface Subscription {
   paymobIntentionId?: string | null;
   paymobSubscriptionPlanId?: number | null;
   paymobCustomerId?: string | null;
+  streampaySubscriptionId?: string | null;
+  streampayConsumerId?: string | null;
+  streampayPaymentLinkId?: string | null;
 
   createdAt: Date;
   modifiedAt: Date | null;
