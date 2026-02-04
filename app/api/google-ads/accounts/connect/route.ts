@@ -2,12 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { db } from "@/db";
-import { googleAdsAccount } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { googleAdsAccount, googleAdsOauthSession } from "@/db/schema";
+import { eq, and, gte } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 interface ConnectAccountBody {
-  refreshToken: string;
+  refreshToken?: string;
+  sessionId?: string;
   customerIds: string[];
 }
 
@@ -37,11 +38,44 @@ export async function POST(request: NextRequest) {
 
     // Parse and validate request body
     const body: ConnectAccountBody = await request.json();
-    const { refreshToken, customerIds } = body;
+    const { refreshToken: directToken, sessionId, customerIds } = body;
 
-    if (!refreshToken) {
+    // Resolve refresh token: either from direct param or from session lookup
+    let refreshToken: string;
+
+    if (sessionId) {
+      // Look up token from OAuth session (secure path - tokens never leave server)
+      const now = new Date();
+      const sessions = await db
+        .select({
+          refreshToken: googleAdsOauthSession.refreshToken,
+          accessToken: googleAdsOauthSession.accessToken,
+          tokenExpiresAt: googleAdsOauthSession.tokenExpiresAt,
+          scope: googleAdsOauthSession.scope,
+        })
+        .from(googleAdsOauthSession)
+        .where(
+          and(
+            eq(googleAdsOauthSession.id, sessionId),
+            eq(googleAdsOauthSession.userId, session.user.id),
+            gte(googleAdsOauthSession.expiresAt, now)
+          )
+        )
+        .limit(1);
+
+      if (sessions.length === 0) {
+        return NextResponse.json(
+          { error: "Bad Request", message: "Session not found or expired. Please try connecting again." },
+          { status: 400 }
+        );
+      }
+
+      refreshToken = sessions[0].refreshToken;
+    } else if (directToken) {
+      refreshToken = directToken;
+    } else {
       return NextResponse.json(
-        { error: "Bad Request", message: "Refresh token is required" },
+        { error: "Bad Request", message: "Either sessionId or refreshToken is required" },
         { status: 400 }
       );
     }
@@ -128,6 +162,13 @@ export async function POST(request: NextRequest) {
     const connectedCount = results.filter(r => r.status === "connected").length;
     const alreadyConnectedCount = results.filter(r => r.status === "already_connected").length;
     const failedCount = results.filter(r => r.status === "failed").length;
+
+    // Clean up the OAuth session after successful connection
+    if (sessionId) {
+      db.delete(googleAdsOauthSession)
+        .where(eq(googleAdsOauthSession.id, sessionId))
+        .catch((err) => console.error("Failed to cleanup OAuth session:", err));
+    }
 
     return NextResponse.json({
       success: true,

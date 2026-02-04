@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { googleAdsAccount } from "@/db/schema";
+import { googleAdsAccount, googleAdsOauthSession } from "@/db/schema";
 import { getTokensFromCode } from "@/lib/google-ads/oauth-client";
 import { withRetry, isRetryableError } from "@/lib/google-ads/retry";
 import { nanoid } from "nanoid";
@@ -15,7 +15,7 @@ import { headers } from "next/headers";
  * 1. Exchange authorization code for tokens
  * 2. List accessible Google Ads accounts
  * 3. If 1 account: auto-connect and redirect to dashboard
- * 4. If multiple accounts: redirect to selection page
+ * 4. If multiple accounts: store tokens in DB session and redirect to selection page
  * 5. On error: redirect with error details
  */
 export async function GET(request: NextRequest) {
@@ -62,7 +62,6 @@ export async function GET(request: NextRequest) {
     const refreshToken: string = tokens.refresh_token;
 
     // Step 2: List accessible customers using google-ads-api library
-    // This is the most reliable method as it uses the official SDK
     const { GoogleAdsApi } = await import("google-ads-api");
 
     const client = new GoogleAdsApi({
@@ -84,15 +83,10 @@ export async function GET(request: NextRequest) {
           baseDelayMs: 2000,
           maxDelayMs: 30000,
           shouldRetry: (error: Error) => {
-            // Retry on network errors
-            const _errorCode = (error as NodeJS.ErrnoException).code;
             const isNetworkError = isRetryableError(error);
-
-            // Also retry on Google Ads API-specific errors
             const isGoogleAdsError = error.message.includes('google-ads-api') ||
                                     error.message.includes('Grpc') ||
                                     error.message.includes('deadline');
-
             return isNetworkError || isGoogleAdsError;
           }
         }
@@ -121,7 +115,6 @@ export async function GET(request: NextRequest) {
         stack: apiError instanceof Error ? apiError.stack : undefined
       });
 
-      // Map specific errors to user-friendly messages
       const errorParam = errorCode === 'ECONNRESET' ? 'connection_reset' :
                         errorCode === 'ETIMEDOUT' ? 'timeout' :
                         errorCode === 'ECONNREFUSED' ? 'connection_refused' :
@@ -143,7 +136,6 @@ export async function GET(request: NextRequest) {
       const customerId = customers[0].replace(/-/g, "");
 
       try {
-        // Store token in database
         await db.insert(googleAdsAccount).values({
           id: nanoid(),
           userId: state,
@@ -164,30 +156,31 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Redirect to dashboard with success
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/google-ads/settings/accounts?connected=true`
       );
     }
 
-    // Step 4: Multiple accounts - redirect to selection page
-    const selectionData = {
+    // Step 4: Multiple accounts - store tokens securely in DB, pass only session ID in URL
+    const sessionId = nanoid();
+    const sessionExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minute TTL
+
+    await db.insert(googleAdsOauthSession).values({
+      id: sessionId,
       userId: state,
       refreshToken: refreshToken,
       accessToken: tokens.access_token || null,
-      expiresIn: tokens.expiry_date
-        ? Math.floor((tokens.expiry_date - Date.now()) / 1000)
+      tokenExpiresAt: tokens.expiry_date
+        ? new Date(tokens.expiry_date)
         : null,
       scope: tokens.scope || null,
-      customers: customers,
-    };
+      customers: JSON.stringify(customers),
+      expiresAt: sessionExpiresAt,
+    });
 
-    // Encode data for URL transmission
-    const encodedData = Buffer.from(JSON.stringify(selectionData)).toString('base64url');
-
-    // Redirect to account selection page
+    // Redirect to account selection page with only the session ID (no tokens in URL)
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/google-ads/connect/select-accounts?data=${encodedData}`
+      `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/google-ads/connect/select-accounts?session=${sessionId}`
     );
 
   } catch (error) {

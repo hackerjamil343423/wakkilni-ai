@@ -5,7 +5,7 @@
 
 import { db } from "@/db";
 import { googleAdsAccountSnapshots, googleAdsAccount } from "@/db/schema";
-import { eq, and, desc, gte, lte } from "drizzle-orm";
+import { eq, and, desc, gte, lte, inArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 export interface AccountSnapshot {
@@ -174,7 +174,9 @@ export async function getSnapshotsByDate(
     .from(googleAdsAccountSnapshots)
     .where(
       and(
-        // accountIds.length > 0 ? eq(...) : undefined, // TODO: Add proper array support
+        accountIds.length > 0
+          ? inArray(googleAdsAccountSnapshots.accountId, accountIds)
+          : undefined,
         gte(googleAdsAccountSnapshots.snapshotDate, startOfDay),
         lte(googleAdsAccountSnapshots.snapshotDate, endOfDay)
       )

@@ -3,11 +3,12 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { GoogleAdsService } from "@/lib/google-ads/service";
 import { requireAccountOwnership } from "@/lib/google-ads/ownership";
+import { getCachedRecommendations, cacheRecommendations } from "@/lib/google-ads/cache";
 
 /**
  * GET /api/google-ads/recommendations
  * Fetches Google Ads optimization recommendations
- * Requires account ownership verification
+ * Uses cache when available (2 hour TTL)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -31,11 +32,27 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify account ownership
-    await requireAccountOwnership(session.user.id, customerId);
+    const account = await requireAccountOwnership(session.user.id, customerId);
+
+    // Check cache first
+    const cached = await getCachedRecommendations(account.id);
+    if (cached) {
+      return NextResponse.json({
+        success: true,
+        data: cached,
+        cached: true,
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     const googleAdsService = new GoogleAdsService(session.user.id);
 
     const recommendations = await googleAdsService.getRecommendations(customerId);
+
+    // Cache the results (2 hour TTL)
+    cacheRecommendations(account.id, recommendations).catch((err) =>
+      console.error("Failed to cache recommendations:", err)
+    );
 
     return NextResponse.json({
       success: true,

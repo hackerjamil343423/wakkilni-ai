@@ -300,19 +300,86 @@ function isRecommendationApplyable(type: string): boolean {
 }
 
 /**
- * Helper: Get country info from criterion ID
- * This is a simplified mapping - in production, use Google Ads geo target constants
+ * Helper: Get country info from Google Ads criterion ID
+ * Comprehensive mapping of Google Ads geo target criterion IDs to country codes
+ * IDs follow the pattern: 2000 + ISO 3166-1 numeric code
  */
 function getCountryInfo(criterionId: string): { countryCode: string; countryName: string } {
-  // This is a sample mapping - you should use the full Google Ads geo target constants
   const geoMap: Record<string, { countryCode: string; countryName: string }> = {
+    // Middle East & North Africa (priority for Wakkilni)
+    "2682": { countryCode: "SA", countryName: "Saudi Arabia" },
+    "2784": { countryCode: "AE", countryName: "United Arab Emirates" },
+    "2414": { countryCode: "KW", countryName: "Kuwait" },
+    "2048": { countryCode: "BH", countryName: "Bahrain" },
+    "2634": { countryCode: "QA", countryName: "Qatar" },
+    "2512": { countryCode: "OM", countryName: "Oman" },
+    "2400": { countryCode: "JO", countryName: "Jordan" },
+    "2422": { countryCode: "LB", countryName: "Lebanon" },
+    "2368": { countryCode: "IQ", countryName: "Iraq" },
+    "2818": { countryCode: "EG", countryName: "Egypt" },
+    "2504": { countryCode: "MA", countryName: "Morocco" },
+    "2788": { countryCode: "TN", countryName: "Tunisia" },
+    "2012": { countryCode: "DZ", countryName: "Algeria" },
+    "2434": { countryCode: "LY", countryName: "Libya" },
+    "2760": { countryCode: "SY", countryName: "Syria" },
+    "2275": { countryCode: "PS", countryName: "Palestine" },
+    "2887": { countryCode: "YE", countryName: "Yemen" },
+    // North America
     "2840": { countryCode: "US", countryName: "United States" },
-    "2826": { countryCode: "GB", countryName: "United Kingdom" },
     "2124": { countryCode: "CA", countryName: "Canada" },
-    "2036": { countryCode: "AU", countryName: "Australia" },
+    "2484": { countryCode: "MX", countryName: "Mexico" },
+    // Europe
+    "2826": { countryCode: "GB", countryName: "United Kingdom" },
     "2276": { countryCode: "DE", countryName: "Germany" },
     "2250": { countryCode: "FR", countryName: "France" },
+    "2380": { countryCode: "IT", countryName: "Italy" },
+    "2724": { countryCode: "ES", countryName: "Spain" },
+    "2528": { countryCode: "NL", countryName: "Netherlands" },
+    "2056": { countryCode: "BE", countryName: "Belgium" },
+    "2756": { countryCode: "CH", countryName: "Switzerland" },
+    "2040": { countryCode: "AT", countryName: "Austria" },
+    "2616": { countryCode: "PL", countryName: "Poland" },
+    "2752": { countryCode: "SE", countryName: "Sweden" },
+    "2578": { countryCode: "NO", countryName: "Norway" },
+    "2208": { countryCode: "DK", countryName: "Denmark" },
+    "2246": { countryCode: "FI", countryName: "Finland" },
+    "2372": { countryCode: "IE", countryName: "Ireland" },
+    "2620": { countryCode: "PT", countryName: "Portugal" },
+    "2300": { countryCode: "GR", countryName: "Greece" },
+    "2203": { countryCode: "CZ", countryName: "Czech Republic" },
+    "2642": { countryCode: "RO", countryName: "Romania" },
+    "2348": { countryCode: "HU", countryName: "Hungary" },
+    "2792": { countryCode: "TR", countryName: "Turkey" },
+    "2643": { countryCode: "RU", countryName: "Russia" },
+    "2804": { countryCode: "UA", countryName: "Ukraine" },
+    // Asia Pacific
+    "2036": { countryCode: "AU", countryName: "Australia" },
+    "2554": { countryCode: "NZ", countryName: "New Zealand" },
+    "2392": { countryCode: "JP", countryName: "Japan" },
+    "2410": { countryCode: "KR", countryName: "South Korea" },
+    "2156": { countryCode: "CN", countryName: "China" },
+    "2356": { countryCode: "IN", countryName: "India" },
+    "2360": { countryCode: "ID", countryName: "Indonesia" },
+    "2764": { countryCode: "TH", countryName: "Thailand" },
+    "2704": { countryCode: "VN", countryName: "Vietnam" },
+    "2608": { countryCode: "PH", countryName: "Philippines" },
+    "2458": { countryCode: "MY", countryName: "Malaysia" },
+    "2702": { countryCode: "SG", countryName: "Singapore" },
+    "2158": { countryCode: "TW", countryName: "Taiwan" },
+    "2344": { countryCode: "HK", countryName: "Hong Kong" },
+    "2586": { countryCode: "PK", countryName: "Pakistan" },
+    "2050": { countryCode: "BD", countryName: "Bangladesh" },
+    // South America
+    "2076": { countryCode: "BR", countryName: "Brazil" },
+    "2032": { countryCode: "AR", countryName: "Argentina" },
+    "2170": { countryCode: "CO", countryName: "Colombia" },
+    "2152": { countryCode: "CL", countryName: "Chile" },
+    "2604": { countryCode: "PE", countryName: "Peru" },
+    // Africa
+    "2710": { countryCode: "ZA", countryName: "South Africa" },
+    "2566": { countryCode: "NG", countryName: "Nigeria" },
+    "2404": { countryCode: "KE", countryName: "Kenya" },
   };
 
-  return geoMap[criterionId] || { countryCode: "UNKNOWN", countryName: "Unknown" };
+  return geoMap[criterionId] || { countryCode: "OTHER", countryName: `Region ${criterionId}` };
 }

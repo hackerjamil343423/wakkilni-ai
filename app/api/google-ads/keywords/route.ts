@@ -3,11 +3,12 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { GoogleAdsService } from "@/lib/google-ads/service";
 import { requireAccountOwnership } from "@/lib/google-ads/ownership";
+import { getCachedKeywords, cacheKeywords } from "@/lib/google-ads/cache";
 
 /**
  * GET /api/google-ads/keywords
  * Fetches keywords with quality score data
- * Requires account ownership verification
+ * Uses cache when available (1 hour TTL)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -34,7 +35,20 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify account ownership
-    await requireAccountOwnership(session.user.id, customerId);
+    const account = await requireAccountOwnership(session.user.id, customerId);
+
+    // Check cache first (only for unfiltered requests)
+    if (!adGroupIds) {
+      const cached = await getCachedKeywords(account.id);
+      if (cached) {
+        return NextResponse.json({
+          success: true,
+          data: cached,
+          cached: true,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }
 
     const googleAdsService = new GoogleAdsService(session.user.id);
 
@@ -44,6 +58,13 @@ export async function GET(request: NextRequest) {
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
     });
+
+    // Cache the results (only unfiltered)
+    if (!adGroupIds) {
+      cacheKeywords(account.id, keywords).catch((err) =>
+        console.error("Failed to cache keywords:", err)
+      );
+    }
 
     return NextResponse.json({
       success: true,

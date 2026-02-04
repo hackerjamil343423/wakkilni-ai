@@ -254,6 +254,144 @@ export async function getCachedRecommendations(
 }
 
 /**
+ * Cache keywords data
+ */
+export async function cacheKeywords(
+  accountId: string,
+  keywords: Keyword[],
+  dataDate: Date = new Date()
+): Promise<void> {
+  const expiresAt = new Date(Date.now() + DEFAULT_CACHE_DURATION * 60 * 1000);
+
+  const values = keywords.map((keyword) => ({
+    id: nanoid(),
+    accountId,
+    keywordId: keyword.id,
+    adGroupId: keyword.adGroupId,
+    text: keyword.text,
+    matchType: keyword.matchType,
+    status: keyword.status,
+    qualityScore: keyword.qualityScore,
+    expectedCtr: keyword.expectedCTR,
+    adRelevance: keyword.adRelevance,
+    landingPageExperience: keyword.landingPageExperience,
+    spend: keyword.spend.toString(),
+    impressions: keyword.impressions,
+    clicks: keyword.clicks,
+    conversions: keyword.conversions.toString(),
+    ctr: keyword.ctr.toString(),
+    avgCpc: keyword.avgCpc.toString(),
+    cpa: keyword.cpa.toString(),
+    dataDate,
+    expiresAt,
+  }));
+
+  await db.insert(cachedKeywords).values(values).onConflictDoNothing();
+}
+
+/**
+ * Get cached keywords
+ */
+export async function getCachedKeywords(
+  accountId: string
+): Promise<Keyword[] | null> {
+  const now = new Date();
+
+  const results = await db
+    .select()
+    .from(cachedKeywords)
+    .where(
+      and(
+        eq(cachedKeywords.accountId, accountId),
+        gte(cachedKeywords.expiresAt, now)
+      )
+    );
+
+  if (results.length === 0) return null;
+
+  return results.map((row) => ({
+    id: row.keywordId,
+    adGroupId: row.adGroupId,
+    text: row.text,
+    matchType: row.matchType as any,
+    status: row.status as any,
+    qualityScore: row.qualityScore || 5,
+    expectedCTR: (row.expectedCtr || "AVERAGE") as any,
+    adRelevance: (row.adRelevance || "AVERAGE") as any,
+    landingPageExperience: (row.landingPageExperience || "AVERAGE") as any,
+    spend: parseFloat(row.spend),
+    impressions: row.impressions,
+    clicks: row.clicks,
+    conversions: parseFloat(row.conversions),
+    ctr: parseFloat(row.ctr),
+    avgCpc: parseFloat(row.avgCpc),
+    cpa: parseFloat(row.cpa),
+  }));
+}
+
+/**
+ * Cache geo performance data
+ */
+export async function cacheGeoPerformance(
+  accountId: string,
+  geoData: GeoPerformance[],
+  dataDate: Date = new Date()
+): Promise<void> {
+  const expiresAt = new Date(Date.now() + DEFAULT_CACHE_DURATION * 60 * 1000);
+
+  const values = geoData.map((geo) => ({
+    id: nanoid(),
+    accountId,
+    countryCode: geo.countryCode,
+    countryName: geo.countryName,
+    spend: geo.spend.toString(),
+    impressions: geo.impressions,
+    clicks: geo.clicks,
+    conversions: geo.conversions.toString(),
+    roas: geo.roas.toString(),
+    ctr: geo.ctr.toString(),
+    cpa: geo.cpa.toString(),
+    dataDate,
+    expiresAt,
+  }));
+
+  await db.insert(cachedGeoPerformance).values(values).onConflictDoNothing();
+}
+
+/**
+ * Get cached geo performance
+ */
+export async function getCachedGeoPerformance(
+  accountId: string
+): Promise<GeoPerformance[] | null> {
+  const now = new Date();
+
+  const results = await db
+    .select()
+    .from(cachedGeoPerformance)
+    .where(
+      and(
+        eq(cachedGeoPerformance.accountId, accountId),
+        gte(cachedGeoPerformance.expiresAt, now)
+      )
+    );
+
+  if (results.length === 0) return null;
+
+  return results.map((row) => ({
+    countryCode: row.countryCode,
+    countryName: row.countryName,
+    spend: parseFloat(row.spend),
+    impressions: row.impressions,
+    clicks: row.clicks,
+    conversions: parseFloat(row.conversions),
+    roas: parseFloat(row.roas),
+    ctr: parseFloat(row.ctr),
+    cpa: parseFloat(row.cpa),
+  }));
+}
+
+/**
  * Clear expired cache entries
  */
 export async function clearExpiredCache(): Promise<void> {

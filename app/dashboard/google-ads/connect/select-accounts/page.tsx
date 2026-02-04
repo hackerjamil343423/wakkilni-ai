@@ -8,12 +8,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 
-interface OAuthSelectionData {
-  userId: string;
-  refreshToken: string;
-  accessToken: string | null;
-  expiresIn: number;
-  scope: string | null;
+interface SessionData {
+  sessionId: string;
   customers: string[];
 }
 
@@ -23,45 +19,47 @@ function SelectAccountsContent() {
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectionData, setSelectionData] = useState<OAuthSelectionData | null>(null);
+  const [sessionData, setSessionData] = useState<SessionData | null>(null);
   const [selectedCustomers, setSelectedCustomers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    try {
-      const encodedData = searchParams.get("data");
+    const sessionId = searchParams.get("session");
 
-      if (!encodedData) {
-        setError("Missing selection data. Please try connecting again.");
-        setLoading(false);
-        return;
-      }
-
-      // Decode base64url to base64, then decode
-      // base64url uses - instead of + and _ instead of /
-      const base64 = encodedData.replace(/-/g, '+').replace(/_/g, '/');
-      const decoded = decodeURIComponent(
-        atob(base64)
-          .split('')
-          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-          .join('')
-      );
-      const data: OAuthSelectionData = JSON.parse(decoded);
-
-      if (!data.customers || data.customers.length === 0) {
-        setError("No accounts available to connect.");
-        setLoading(false);
-        return;
-      }
-
-      setSelectionData(data);
-      // Auto-select all accounts by default
-      setSelectedCustomers(new Set(data.customers));
+    if (!sessionId) {
+      setError("Missing session data. Please try connecting again.");
       setLoading(false);
-    } catch (err) {
-      console.error("Error parsing selection data:", err);
-      setError("Invalid selection data. Please try connecting again.");
-      setLoading(false);
+      return;
     }
+
+    // Fetch session data from secure API endpoint
+    fetch(`/api/google-ads/oauth/session?id=${encodeURIComponent(sessionId)}`)
+      .then(async (response) => {
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || "Failed to load session data");
+        }
+        return response.json();
+      })
+      .then((data) => {
+        if (!data.customers || data.customers.length === 0) {
+          setError("No accounts available to connect.");
+          setLoading(false);
+          return;
+        }
+
+        setSessionData({
+          sessionId: data.sessionId,
+          customers: data.customers,
+        });
+        // Auto-select all accounts by default
+        setSelectedCustomers(new Set(data.customers));
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Error fetching session data:", err);
+        setError(err.message || "Invalid session data. Please try connecting again.");
+        setLoading(false);
+      });
   }, [searchParams]);
 
   const formatCustomerId = (customerId: string) => {
@@ -86,8 +84,8 @@ function SelectAccountsContent() {
   };
 
   const selectAll = () => {
-    if (selectionData) {
-      setSelectedCustomers(new Set(selectionData.customers));
+    if (sessionData) {
+      setSelectedCustomers(new Set(sessionData.customers));
     }
   };
 
@@ -96,7 +94,7 @@ function SelectAccountsContent() {
   };
 
   const handleConnect = async () => {
-    if (!selectionData || selectedCustomers.size === 0) return;
+    if (!sessionData || selectedCustomers.size === 0) return;
 
     setConnecting(true);
     setError(null);
@@ -108,7 +106,7 @@ function SelectAccountsContent() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          refreshToken: selectionData.refreshToken,
+          sessionId: sessionData.sessionId,
           customerIds: Array.from(selectedCustomers),
         }),
       });
@@ -116,7 +114,6 @@ function SelectAccountsContent() {
       const data = await response.json();
 
       if (!response.ok) {
-        // Provide more detailed error messages
         let errorMessage = "Failed to connect accounts";
 
         if (data.error) {
@@ -162,7 +159,7 @@ function SelectAccountsContent() {
     );
   }
 
-  if (error && !selectionData) {
+  if (error && !sessionData) {
     return (
       <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex items-center justify-center p-4">
         <Card className="max-w-md w-full">
@@ -205,14 +202,14 @@ function SelectAccountsContent() {
           {/* Selection Controls */}
           <div className="flex items-center justify-between">
             <p className="text-sm text-zinc-500">
-              {selectedCustomers.size} of {selectionData?.customers.length || 0} accounts selected
+              {selectedCustomers.size} of {sessionData?.customers.length || 0} accounts selected
             </p>
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={selectAll}
-                disabled={selectedCustomers.size === selectionData?.customers.length}
+                disabled={selectedCustomers.size === sessionData?.customers.length}
               >
                 Select All
               </Button>
@@ -229,7 +226,7 @@ function SelectAccountsContent() {
 
           {/* Account List */}
           <div className="space-y-3 max-h-[400px] overflow-y-auto">
-            {selectionData?.customers.map((customerId) => {
+            {sessionData?.customers.map((customerId) => {
               const isSelected = selectedCustomers.has(customerId);
 
               return (

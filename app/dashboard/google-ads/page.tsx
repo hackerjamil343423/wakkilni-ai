@@ -44,7 +44,9 @@ import {
   QualityScoreDataPoint,
 } from "./types";
 import { useTranslation } from "@/hooks/use-translation";
-// Icons available: BarChart3, Search, Zap, Video, Globe from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 type TabId = "overview" | "search" | "pmax" | "video" | "audience";
 
@@ -77,6 +79,7 @@ export default function GoogleAdsDashboard() {
   const {
     data: campaigns,
     loading: campaignsLoading,
+    error: campaignsError,
     refetch: refetchCampaigns
   } = useCampaigns({
     customerId: activeCustomerId || "",
@@ -99,6 +102,7 @@ export default function GoogleAdsDashboard() {
   const {
     data: dailyMetrics,
     loading: metricsLoading,
+    error: metricsError,
     refetch: refetchMetrics
   } = useDailyMetrics({
     customerId: activeCustomerId || "",
@@ -109,6 +113,7 @@ export default function GoogleAdsDashboard() {
 
   const {
     data: keywords,
+    error: keywordsError,
     refetch: refetchKeywords
   } = useKeywords({
     customerId: activeCustomerId || "",
@@ -130,6 +135,7 @@ export default function GoogleAdsDashboard() {
 
   const {
     data: geoData,
+    error: geoError,
     refetch: refetchGeo
   } = useGeoPerformance({
     customerId: activeCustomerId || "",
@@ -203,6 +209,9 @@ export default function GoogleAdsDashboard() {
 
   const isLoading = campaignsLoading || metricsLoading;
 
+  // Aggregate errors from all hooks
+  const apiError = campaignsError || metricsError || keywordsError || geoError;
+
   // Redirect to platform page if not connected (silent redirect, no white screen)
   useEffect(() => {
     if (!connectionLoading && !connected) {
@@ -236,6 +245,29 @@ export default function GoogleAdsDashboard() {
             onRefresh={handleRefresh}
           />
         </div>
+
+        {/* Error Banner */}
+        {apiError && !isLoading && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>
+                {apiError.message.includes("Failed to fetch")
+                  ? "Unable to load data from Google Ads. Please check your connection and try again."
+                  : apiError.message}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                className="ml-4 shrink-0"
+              >
+                <RefreshCw className="h-3 w-3 mr-1" />
+                Retry
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Tab Content */}
         <div className="space-y-6">

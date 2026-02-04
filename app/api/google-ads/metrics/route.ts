@@ -3,11 +3,12 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { GoogleAdsService } from "@/lib/google-ads/service";
 import { requireAccountOwnership } from "@/lib/google-ads/ownership";
+import { getCachedDailyMetrics, cacheDailyMetrics } from "@/lib/google-ads/cache";
 
 /**
  * GET /api/google-ads/metrics
  * Fetches aggregated daily metrics for the dashboard
- * Requires account ownership verification
+ * Uses cache when available to reduce API calls
  */
 export async function GET(request: NextRequest) {
   try {
@@ -33,15 +34,34 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify account ownership
-    await requireAccountOwnership(session.user.id, customerId);
+    const account = await requireAccountOwnership(session.user.id, customerId);
+
+    const resolvedStartDate = startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const resolvedEndDate = endDate ? new Date(endDate) : new Date();
+
+    // Check cache first
+    const cached = await getCachedDailyMetrics(account.id, resolvedStartDate, resolvedEndDate);
+    if (cached) {
+      return NextResponse.json({
+        success: true,
+        data: cached,
+        cached: true,
+        timestamp: new Date().toISOString(),
+      });
+    }
 
     const googleAdsService = new GoogleAdsService(session.user.id);
 
     const metrics = await googleAdsService.getDailyMetrics({
       customerId,
-      startDate: startDate ? new Date(startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-      endDate: endDate ? new Date(endDate) : new Date(),
+      startDate: resolvedStartDate,
+      endDate: resolvedEndDate,
     });
+
+    // Cache the results
+    cacheDailyMetrics(account.id, metrics).catch((err) =>
+      console.error("Failed to cache metrics:", err)
+    );
 
     return NextResponse.json({
       success: true,

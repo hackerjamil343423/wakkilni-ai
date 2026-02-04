@@ -518,6 +518,24 @@ export const googleAdsMetricsCache = pgTable("google_ads_metrics_cache", {
 });
 
 // ============================================================================
+// Temporary OAuth Session (for secure multi-account selection flow)
+// ============================================================================
+
+export const googleAdsOauthSession = pgTable("google_ads_oauth_session", {
+  id: text("id").primaryKey(), // nanoid
+  userId: text("userId")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  refreshToken: text("refreshToken").notNull(),
+  accessToken: text("accessToken"),
+  tokenExpiresAt: timestamp("tokenExpiresAt"),
+  scope: text("scope"),
+  customers: text("customers").notNull(), // JSON array of customer IDs
+  expiresAt: timestamp("expiresAt").notNull(), // Short TTL (10 minutes)
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+});
+
+// ============================================================================
 // Meta Ads Tables
 // ============================================================================
 

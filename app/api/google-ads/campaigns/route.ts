@@ -3,11 +3,12 @@ import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { GoogleAdsService } from "@/lib/google-ads/service";
 import { requireAccountOwnership } from "@/lib/google-ads/ownership";
+import { getCachedCampaigns, cacheCampaigns } from "@/lib/google-ads/cache";
 
 /**
  * GET /api/google-ads/campaigns
  * Fetches all campaigns with optional filters
- * Requires account ownership verification
+ * Uses cache when available to reduce API calls
  */
 export async function GET(request: NextRequest) {
   try {
@@ -37,7 +38,20 @@ export async function GET(request: NextRequest) {
     }
 
     // Verify account ownership - user can only access their own connected accounts
-    await requireAccountOwnership(session.user.id, customerId);
+    const account = await requireAccountOwnership(session.user.id, customerId);
+
+    // Check cache first (only for unfiltered requests to avoid stale filtered data)
+    if (!campaignTypes?.length && !campaignStatuses?.length) {
+      const cached = await getCachedCampaigns(account.id);
+      if (cached) {
+        return NextResponse.json({
+          success: true,
+          data: cached,
+          cached: true,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }
 
     // Initialize Google Ads service
     const googleAdsService = new GoogleAdsService(session.user.id);
@@ -50,6 +64,13 @@ export async function GET(request: NextRequest) {
       campaignTypes,
       campaignStatuses,
     });
+
+    // Cache the results (only for unfiltered requests)
+    if (!campaignTypes?.length && !campaignStatuses?.length) {
+      cacheCampaigns(account.id, campaigns).catch((err) =>
+        console.error("Failed to cache campaigns:", err)
+      );
+    }
 
     return NextResponse.json({
       success: true,

@@ -5,6 +5,12 @@
 
 import { withRetry } from './retry';
 
+/**
+ * Centralized Google Ads API version constant
+ * Update this single value when upgrading API versions
+ */
+export const GOOGLE_ADS_API_VERSION = 'v21';
+
 interface ListAccessibleCustomersResponse {
   resourceNames?: string[];
 }
@@ -55,7 +61,7 @@ async function fetchWithTimeout(
  */
 export async function listAccessibleCustomers(
   accessToken: string,
-  apiVersion: string = 'v21'
+  apiVersion: string = GOOGLE_ADS_API_VERSION
 ): Promise<string[]> {
   const url = `https://googleads.googleapis.com/${apiVersion}/customers:listAccessibleCustomers`;
 
@@ -123,7 +129,7 @@ export async function getCustomer(
 ): Promise<any> {
   // Clean customer ID (remove hyphens)
   const cleanCustomerId = customerId.replace(/-/g, '');
-  const url = `https://googleads.googleapis.com/v21/customers/${cleanCustomerId}`;
+  const url = `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}`;
 
   const headers: Record<string, string> = {
     'Authorization': `Bearer ${accessToken}`,
@@ -164,7 +170,7 @@ export async function searchGoogleAds(
   loginCustomerId?: string
 ): Promise<any> {
   const cleanCustomerId = customerId.replace(/-/g, '');
-  const url = `https://googleads.googleapis.com/v21/customers/${cleanCustomerId}/googleAds:search`;
+  const url = `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/googleAds:search`;
 
   const headers: Record<string, string> = {
     'Authorization': `Bearer ${accessToken}`,

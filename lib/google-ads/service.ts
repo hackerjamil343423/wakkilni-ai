@@ -1,7 +1,11 @@
 import { GoogleAdsApi, enums } from "google-ads-api";
 import { Campaign, AdGroup, Keyword, DailyMetrics, Recommendation, GeoPerformance } from "@/app/dashboard/google-ads/types";
 import { getGoogleAdsCredentials } from "./credentials";
+import { GOOGLE_ADS_API_VERSION } from "./api-client";
 import { transformCampaign, transformAdGroup, transformKeyword, transformMetrics, transformRecommendation, transformGeoPerformance } from "./transformers";
+import { db } from "@/db";
+import { googleAdsAccount } from "@/db/schema";
+import { eq, and } from "drizzle-orm";
 
 export interface CampaignFilters {
   customerId: string;
@@ -52,14 +56,56 @@ export class GoogleAdsService {
   }
 
   /**
+   * Get account details (loginCustomerId, refreshToken) for a specific customer
+   */
+  private async getAccountDetails(customerId: string): Promise<{
+    refreshToken: string;
+    loginCustomerId: string;
+  }> {
+    const result = await db
+      .select({
+        refreshToken: googleAdsAccount.refreshToken,
+        loginCustomerId: googleAdsAccount.loginCustomerId,
+      })
+      .from(googleAdsAccount)
+      .where(
+        and(
+          eq(googleAdsAccount.userId, this.userId),
+          eq(googleAdsAccount.customerId, customerId)
+        )
+      )
+      .limit(1);
+
+    if (!result || result.length === 0) {
+      throw new Error(
+        "No Google Ads account found. Please connect your Google Ads account."
+      );
+    }
+
+    return {
+      refreshToken: result[0].refreshToken,
+      loginCustomerId: result[0].loginCustomerId,
+    };
+  }
+
+  /**
+   * Create a configured Customer instance with proper token and login_customer_id
+   */
+  private async createCustomer(customerId: string) {
+    const { refreshToken, loginCustomerId } = await this.getAccountDetails(customerId);
+    return this.client.Customer({
+      customer_id: customerId,
+      login_customer_id: loginCustomerId,
+      refresh_token: refreshToken,
+    });
+  }
+
+  /**
    * Fetch campaigns with metrics
    */
   async getCampaigns(filters: CampaignFilters): Promise<Campaign[]> {
     try {
-      const customer = this.client.Customer({
-        customer_id: filters.customerId,
-        refresh_token: await this.getRefreshToken(),
-      });
+      const customer = await this.createCustomer(filters.customerId);
 
       const dateRange = this.buildDateRange(filters.startDate, filters.endDate);
 
@@ -114,17 +160,14 @@ export class GoogleAdsService {
    */
   async getAdGroups(filters: AdGroupFilters): Promise<AdGroup[]> {
     try {
-      const customer = this.client.Customer({
-        customer_id: filters.customerId,
-        refresh_token: await this.getRefreshToken(),
-      });
+      const customer = await this.createCustomer(filters.customerId);
 
       const dateRange = this.buildDateRange(filters.startDate, filters.endDate);
 
       let whereClause = "ad_group.status != 'REMOVED'";
 
       if (filters.campaignIds && filters.campaignIds.length > 0) {
-        const ids = filters.campaignIds.map(id => `'${id}'`).join(", ");
+        const ids = filters.campaignIds.join(", ");
         whereClause += ` AND campaign.id IN (${ids})`;
       }
 
@@ -161,17 +204,14 @@ export class GoogleAdsService {
    */
   async getKeywords(filters: KeywordFilters): Promise<Keyword[]> {
     try {
-      const customer = this.client.Customer({
-        customer_id: filters.customerId,
-        refresh_token: await this.getRefreshToken(),
-      });
+      const customer = await this.createCustomer(filters.customerId);
 
       const dateRange = this.buildDateRange(filters.startDate, filters.endDate);
 
       let whereClause = "ad_group_criterion.status != 'REMOVED' AND ad_group_criterion.type = 'KEYWORD'";
 
       if (filters.adGroupIds && filters.adGroupIds.length > 0) {
-        const ids = filters.adGroupIds.map(id => `'${id}'`).join(", ");
+        const ids = filters.adGroupIds.join(", ");
         whereClause += ` AND ad_group.id IN (${ids})`;
       }
 
@@ -214,10 +254,7 @@ export class GoogleAdsService {
    */
   async getDailyMetrics(filters: MetricsFilters): Promise<DailyMetrics[]> {
     try {
-      const customer = this.client.Customer({
-        customer_id: filters.customerId,
-        refresh_token: await this.getRefreshToken(),
-      });
+      const customer = await this.createCustomer(filters.customerId);
 
       const dateRange = this.buildDateRange(filters.startDate, filters.endDate);
 
@@ -254,16 +291,17 @@ export class GoogleAdsService {
    */
   async getRecommendations(customerId: string): Promise<Recommendation[]> {
     try {
-      const customer = this.client.Customer({
-        customer_id: customerId,
-        refresh_token: await this.getRefreshToken(),
-      });
+      const customer = await this.createCustomer(customerId);
 
       const query = `
         SELECT
           recommendation.resource_name,
           recommendation.type,
-          recommendation.dismissed
+          recommendation.dismissed,
+          recommendation.impact.base_metrics.impressions,
+          recommendation.impact.base_metrics.clicks,
+          recommendation.impact.base_metrics.conversions,
+          recommendation.impact.base_metrics.cost_micros
         FROM recommendation
         WHERE recommendation.dismissed = FALSE
         LIMIT 20
@@ -279,27 +317,41 @@ export class GoogleAdsService {
   }
 
   /**
-   * Apply a recommendation
-   * Note: This uses the Google Ads API ApplyRecommendation operation
+   * Apply a recommendation using the RecommendationService
    */
   async applyRecommendation(customerId: string, recommendationId: string): Promise<{ success: boolean }> {
     try {
-      const customer = this.client.Customer({
-        customer_id: customerId,
-        refresh_token: await this.getRefreshToken(),
+      const { refreshToken, loginCustomerId } = await this.getAccountDetails(customerId);
+      const accessToken = await this.getAccessTokenForCustomer(customerId);
+
+      // Use REST API to apply recommendation (more reliable than SDK for mutations)
+      const cleanCustomerId = customerId.replace(/-/g, '');
+      const url = `https://googleads.googleapis.com/${GOOGLE_ADS_API_VERSION}/customers/${cleanCustomerId}/recommendations:apply`;
+
+      const headers: Record<string, string> = {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN || '',
+      };
+
+      if (loginCustomerId && loginCustomerId !== customerId) {
+        headers['login-customer-id'] = loginCustomerId.replace(/-/g, '');
+      }
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          operations: [{
+            resource_name: recommendationId,
+          }],
+        }),
       });
 
-      // Apply recommendation using the query method with ApplyRecommendation operation
-      // The recommendationId is the full resource name (e.g., customers/{customer_id}/recommendations/{recommendation_id})
-      await customer.query(`
-        SELECT recommendation.resource_name
-        FROM recommendation
-        WHERE recommendation.resource_name = '${recommendationId}'
-      `);
-
-      // TODO: Full implementation requires using the RecommendationService.ApplyRecommendation RPC
-      // For now, log the attempt and return success for UI feedback
-      console.log(`Recommendation apply requested: ${recommendationId}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Failed to apply recommendation: ${errorText}`);
+      }
 
       return { success: true };
     } catch (error) {
@@ -309,14 +361,19 @@ export class GoogleAdsService {
   }
 
   /**
+   * Get a valid access token for a customer (refresh if needed)
+   */
+  private async getAccessTokenForCustomer(customerId: string): Promise<string> {
+    const { getAccessToken } = await import("./token-manager");
+    return getAccessToken(this.userId, customerId);
+  }
+
+  /**
    * Fetch geographic performance data
    */
   async getGeoPerformance(filters: GeoFilters): Promise<GeoPerformance[]> {
     try {
-      const customer = this.client.Customer({
-        customer_id: filters.customerId,
-        refresh_token: await this.getRefreshToken(),
-      });
+      const customer = await this.createCustomer(filters.customerId);
 
       const dateRange = this.buildDateRange(filters.startDate, filters.endDate);
 
@@ -362,11 +419,4 @@ export class GoogleAdsService {
     return `'${formatDate(start)}' AND '${formatDate(end)}'`;
   }
 
-  /**
-   * Get refresh token for the user
-   */
-  private async getRefreshToken(): Promise<string> {
-    const { getRefreshToken } = await import("./token-manager");
-    return getRefreshToken(this.userId);
-  }
 }
