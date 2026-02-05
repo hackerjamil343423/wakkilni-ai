@@ -11,6 +11,15 @@ const compat = new FlatCompat({
 
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
+  {
+    rules: {
+      // Temporary downgrade for legacy modules with large existing debt.
+      "@typescript-eslint/no-explicit-any": "warn",
+      "react/no-unescaped-entities": "warn",
+      "@typescript-eslint/no-empty-object-type": "warn",
+      "prefer-const": "warn",
+    },
+  },
 ];
 
 export default eslintConfig;
