@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
   /* Performance optimizations */
@@ -6,6 +7,7 @@ const nextConfig: NextConfig = {
 
   // Enable standalone output for Docker/container deployments
   output: 'standalone',
+  outputFileTracingRoot: path.join(process.cwd(), ".."),
 
   typescript: {
     ignoreBuildErrors: false, // Changed: Fix TypeScript errors instead of hiding them
