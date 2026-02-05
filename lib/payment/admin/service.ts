@@ -50,6 +50,23 @@ export interface TestConnectionResult {
   details?: Record<string, unknown>;
 }
 
+function validateWebhookUrl(value: string): string {
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new Error("Invalid webhook URL");
+  }
+
+  const isHttps = parsed.protocol === "https:";
+  const isLocalhost = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+  if (!isHttps && !isLocalhost) {
+    throw new Error("Webhook URL must use HTTPS");
+  }
+
+  return parsed.toString();
+}
+
 // ============================================================================
 // Service Functions
 // ============================================================================
@@ -141,7 +158,7 @@ export async function updatePaymentConfig(
   if (input.priority !== undefined) updateData.priority = input.priority;
   if (input.supportedCountries !== undefined) updateData.supportedCountries = JSON.stringify(input.supportedCountries);
   if (input.sandboxMode !== undefined) updateData.sandboxMode = input.sandboxMode;
-  if (input.webhookUrl !== undefined) updateData.webhookUrl = input.webhookUrl;
+  if (input.webhookUrl !== undefined) updateData.webhookUrl = validateWebhookUrl(input.webhookUrl);
   if (input.webhookEvents !== undefined) updateData.webhookEvents = JSON.stringify(input.webhookEvents);
 
   // Encrypt sensitive data if provided

@@ -14,11 +14,21 @@ import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from "crypt
  * Falls back to a default key for development (NOT SECURE FOR PRODUCTION)
  */
 function getEncryptionKey(): Buffer {
-  const key = process.env.PAYMENT_ADMIN_ENCRYPTION_KEY || "fallback-key-change-in-production";
+  const key = process.env.PAYMENT_ADMIN_ENCRYPTION_KEY;
+  const salt = process.env.PAYMENT_ADMIN_ENCRYPTION_SALT;
+
+  if (!key || !salt) {
+    throw new Error(
+      "Missing payment encryption configuration. Set PAYMENT_ADMIN_ENCRYPTION_KEY and PAYMENT_ADMIN_ENCRYPTION_SALT.",
+    );
+  }
+
+  if (key.length < 32) {
+    throw new Error("PAYMENT_ADMIN_ENCRYPTION_KEY must be at least 32 characters long.");
+  }
 
   // Use scrypt to derive a 32-byte key from the input
   // Salt should be unique per application deployment
-  const salt = process.env.PAYMENT_ADMIN_ENCRYPTION_SALT || "streampay-admin-salt";
   return scryptSync(key, salt, 32);
 }
 

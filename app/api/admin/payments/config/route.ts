@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getAllPaymentConfigs, updatePaymentConfig } from "@/lib/payment/admin/service";
+import { getAdminAuthError } from "@/lib/payment/admin/authz";
 import type { PaymentProvider } from "@/lib/payment/types";
 
 /**
@@ -20,12 +21,10 @@ export async function GET(request: NextRequest) {
       headers: request.headers,
     });
 
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const authError = getAdminAuthError(session);
+    if (authError) {
+      return NextResponse.json({ error: authError.error }, { status: authError.status });
     }
-
-    // TODO: Add admin role check
-    // For now, any authenticated user can access
 
     const configs = await getAllPaymentConfigs();
 
@@ -50,11 +49,10 @@ export async function PUT(request: NextRequest) {
       headers: request.headers,
     });
 
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const authError = getAdminAuthError(session);
+    if (authError) {
+      return NextResponse.json({ error: authError.error }, { status: authError.status });
     }
-
-    // TODO: Add admin role check
 
     const body = await request.json();
     const { provider, ...updateData } = body;

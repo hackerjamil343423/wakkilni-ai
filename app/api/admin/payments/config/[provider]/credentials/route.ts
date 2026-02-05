@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { updatePaymentCredentials } from "@/lib/payment/admin/service";
+import { getAdminAuthError } from "@/lib/payment/admin/authz";
 import type { PaymentProvider } from "@/lib/payment/types";
 
 interface RouteContext {
@@ -23,8 +24,9 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       headers: request.headers,
     });
 
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const authError = getAdminAuthError(session);
+    if (authError) {
+      return NextResponse.json({ error: authError.error }, { status: authError.status });
     }
 
     const { provider } = await context.params;

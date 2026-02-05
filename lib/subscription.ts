@@ -25,6 +25,12 @@ export type SubscriptionDetailsResult = {
   errorType?: "CANCELED" | "EXPIRED" | "GENERAL";
 };
 
+function isDynamicServerUsageError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const maybeError = error as { digest?: string };
+  return maybeError.digest === "DYNAMIC_SERVER_USAGE";
+}
+
 export async function getSubscriptionDetails(): Promise<SubscriptionDetailsResult> {
   try {
     const session = await auth.api.getSession({
@@ -99,7 +105,9 @@ export async function getSubscriptionDetails(): Promise<SubscriptionDetailsResul
       },
     };
   } catch (error) {
-    console.error("Error fetching subscription details:", error);
+    if (!isDynamicServerUsageError(error)) {
+      console.error("Error fetching subscription details:", error);
+    }
     return {
       hasSubscription: false,
       error: "Failed to load subscription details",

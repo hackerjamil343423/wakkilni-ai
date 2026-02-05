@@ -21,12 +21,16 @@ function safeParseDate(value: string | Date | null | undefined): Date | null {
 
 const polarClient = new Polar({
   accessToken: process.env.POLAR_ACCESS_TOKEN,
-  server: "sandbox",
+  server: (process.env.POLAR_SERVER || "sandbox") as "sandbox" | "production",
 });
 
+const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+const allowedOrigins = appUrl ? [appUrl] : [];
+
 export const auth = betterAuth({
-  trustedOrigins: [`${process.env.NEXT_PUBLIC_APP_URL}`],
-  allowedDevOrigins: [`${process.env.NEXT_PUBLIC_APP_URL}`],
+  baseURL: process.env.BETTER_AUTH_BASE_URL || appUrl,
+  trustedOrigins: allowedOrigins,
+  allowedDevOrigins: allowedOrigins,
   cookieCache: {
     enabled: true,
     maxAge: 5 * 60, // Cache duration in seconds
@@ -93,8 +97,9 @@ export const auth = betterAuth({
               type === "subscription.uncanceled" ||
               type === "subscription.updated"
             ) {
-              console.log("🎯 Processing subscription webhook:", type);
-              console.log("📦 Payload data:", JSON.stringify(data, null, 2));
+              if (process.env.NODE_ENV !== "production") {
+                console.info("Processing subscription webhook", { type, subscriptionId: data.id });
+              }
 
               try {
                 // STEP 1: Extract user ID from customer data
@@ -134,12 +139,13 @@ export const auth = betterAuth({
                   userId: userId as string | null,
                 };
 
-                console.log("💾 Final subscription data:", {
-                  id: subscriptionData.id,
-                  status: subscriptionData.status,
-                  userId: subscriptionData.userId,
-                  amount: subscriptionData.amount,
-                });
+                if (process.env.NODE_ENV !== "production") {
+                  console.info("Prepared subscription data", {
+                    id: subscriptionData.id,
+                    status: subscriptionData.status,
+                    userId: subscriptionData.userId,
+                  });
+                }
 
                 // STEP 3: Use Drizzle's onConflictDoUpdate for proper upsert
                 await db
@@ -174,10 +180,12 @@ export const auth = betterAuth({
                     },
                   });
 
-                console.log("✅ Upserted subscription:", data.id);
+                if (process.env.NODE_ENV !== "production") {
+                  console.info("Upserted subscription", { id: data.id });
+                }
               } catch (error) {
                 console.error(
-                  "💥 Error processing subscription webhook:",
+                  "Error processing subscription webhook:",
                   error,
                 );
                 // Don't throw - let webhook succeed to avoid retries

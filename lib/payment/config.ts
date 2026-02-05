@@ -23,7 +23,7 @@ export const PAYMOB_CONFIG = {
   publicKey: process.env.PAYMOB_PUBLIC_KEY || "",
   hmacSecret: process.env.PAYMOB_HMAC_SECRET || "",
   integrationId3DS: parseInt(process.env.PAYMOB_INTEGRATION_ID_3DS || "0", 10),
-  integrationIdMOTO: parseInt(process.env.PAYMOB_INTEGRATION_ID_3DS || "0", 10),
+  integrationIdMOTO: parseInt(process.env.PAYMOB_INTEGRATION_ID_MOTO || "0", 10),
   starterPlanId: parseInt(process.env.PAYMOB_STARTER_PLAN_ID || "0", 10),
   apiUrl: process.env.PAYMOB_API_URL || "https://ksa.paymob.com/v1",
   unifiedCheckoutUrl: process.env.PAYMOB_UNIFIED_CHECKOUT_URL || "https://ksa.paymob.com/unifiedcheckout/",
@@ -37,7 +37,7 @@ export const POLAR_CONFIG = {
   accessToken: process.env.POLAR_ACCESS_TOKEN || "",
   webhookSecret: process.env.POLAR_WEBHOOK_SECRET || "",
   successUrl: process.env.POLAR_SUCCESS_URL || "/success?checkout_id={CHECKOUT_ID}",
-  sandbox: process.env.POLAR_SERVER === "sandbox" || true,
+  sandbox: (process.env.POLAR_SERVER || "sandbox").toLowerCase() !== "production",
   starterTier: process.env.NEXT_PUBLIC_STARTER_TIER || "",
   starterSlug: process.env.NEXT_PUBLIC_STARTER_SLUG || "",
 } as const;

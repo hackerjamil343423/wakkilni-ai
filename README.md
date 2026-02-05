@@ -136,6 +136,20 @@ NEXT_PUBLIC_STARTER_TIER="your-starter-product-id"
 NEXT_PUBLIC_STARTER_SLUG="your-starter-slug"
 ```
 
+### Security Configuration
+
+Set these additional environment variables before enabling admin payment configuration endpoints:
+
+```env
+ADMIN_EMAILS="admin@example.com"
+ADMIN_USER_IDS=""
+BETTER_AUTH_BASE_URL="http://localhost:3000"
+PAYMENT_ADMIN_ENCRYPTION_KEY="replace-with-32-plus-characters"
+PAYMENT_ADMIN_ENCRYPTION_SALT="replace-with-unique-random-salt"
+POLAR_SERVER="sandbox" # or "production"
+PAYMOB_INTEGRATION_ID_MOTO="your-paymob-moto-integration-id"
+```
+
 4. **Database Setup**
 ```bash
 # Generate and run migrations
