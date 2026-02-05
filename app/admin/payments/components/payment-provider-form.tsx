@@ -6,6 +6,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,6 +54,7 @@ const PROVIDER_INFO: Record<string, { name: string; description: string }> = {
 };
 
 export default function PaymentProviderForm({ config, onClose }: Props) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [activeTab, setActiveTab] = useState("general");
 
@@ -82,12 +84,32 @@ export default function PaymentProviderForm({ config, onClose }: Props) {
 
   const providerInfo = PROVIDER_INFO[config.provider];
 
+  const parseCountries = (value: string): string[] =>
+    value
+      .split(",")
+      .map((country) => country.trim().toUpperCase())
+      .filter(Boolean);
+
+  const hasInvalidCountryCode = (countries: string[]): boolean =>
+    countries.some((country) => !/^[A-Z]{2}$/.test(country));
+
+  const isWebhookUrlValid = (value: string): boolean => {
+    try {
+      const parsed = new URL(value);
+      return parsed.protocol === "https:" || parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+    } catch {
+      return false;
+    }
+  };
+
   const handleSaveGeneral = async () => {
     startTransition(async () => {
-      const countries = supportedCountries
-        .split(",")
-        .map((c) => c.trim().toUpperCase())
-        .filter(Boolean);
+      const countries = parseCountries(supportedCountries);
+
+      if (hasInvalidCountryCode(countries)) {
+        toast.error("Supported countries must be 2-letter ISO codes (for example: SA, AE, US).");
+        return;
+      }
 
       const response = await fetch(
         `/api/admin/payments/config/${config.provider}`,
@@ -105,6 +127,7 @@ export default function PaymentProviderForm({ config, onClose }: Props) {
 
       if (response.ok) {
         toast.success("Configuration updated successfully");
+        router.refresh();
       } else {
         const data = await response.json();
         toast.error(data.error || "Failed to update configuration");
@@ -135,6 +158,7 @@ export default function PaymentProviderForm({ config, onClose }: Props) {
       if (response.ok) {
         toast.success("Credentials updated successfully");
         setApiSecret("");
+        router.refresh();
       } else {
         const data = await response.json();
         toast.error(data.error || "Failed to update credentials");
@@ -146,6 +170,11 @@ export default function PaymentProviderForm({ config, onClose }: Props) {
     startTransition(async () => {
       if (!webhookUrl || !webhookSecret) {
         toast.error("Please enter both webhook URL and secret");
+        return;
+      }
+
+      if (!isWebhookUrlValid(webhookUrl)) {
+        toast.error("Webhook URL must be a valid HTTPS URL (localhost is allowed for development).");
         return;
       }
 
@@ -163,6 +192,7 @@ export default function PaymentProviderForm({ config, onClose }: Props) {
 
       if (response.ok) {
         toast.success("Webhook configuration updated successfully");
+        router.refresh();
       } else {
         const data = await response.json();
         toast.error(data.error || "Failed to update webhook configuration");
@@ -188,8 +218,9 @@ export default function PaymentProviderForm({ config, onClose }: Props) {
       if (data.result.success) {
         toast.success("Connection test successful");
       } else {
-        toast.error("Connection test failed");
+        toast.error(data.result.message || "Connection test failed");
       }
+      router.refresh();
     } catch (error) {
       setTestResult({
         success: false,
@@ -215,7 +246,7 @@ export default function PaymentProviderForm({ config, onClose }: Props) {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-2 gap-1 sm:grid-cols-4">
               <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="credentials">Credentials</TabsTrigger>
               <TabsTrigger value="webhook">Webhook</TabsTrigger>
@@ -305,7 +336,7 @@ export default function PaymentProviderForm({ config, onClose }: Props) {
                 <Input
                   id="apiKey"
                   type="text"
-                  placeholder={config.apiPublicKey ? "••••••••" : "Enter API key"}
+                  placeholder={config.apiPublicKey ? "********" : "Enter API key"}
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   disabled={isPending}

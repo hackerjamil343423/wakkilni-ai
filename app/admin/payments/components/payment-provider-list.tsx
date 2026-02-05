@@ -21,20 +21,24 @@ interface PaymentConfigData {
   lastTestedAt?: Date | null;
 }
 
-async function getPaymentConfigs(): Promise<PaymentConfigData[]> {
+async function getPaymentConfigs(): Promise<{ configs: PaymentConfigData[]; error: string | null }> {
   try {
     const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/admin/payments/config`, {
       cache: "no-store",
     });
 
     if (!response.ok) {
-      throw new Error("Failed to fetch payment configurations");
+      if (response.status === 401 || response.status === 403) {
+        return { configs: [], error: "You do not have access to admin payment settings." };
+      }
+
+      return { configs: [], error: "Failed to load payment provider configurations." };
     }
 
     const data = await response.json();
-    return data.configs || [];
+    return { configs: data.configs || [], error: null };
   } catch {
-    return [];
+    return { configs: [], error: "Network error while loading payment settings." };
   }
 }
 
@@ -57,23 +61,56 @@ const PROVIDER_INFO: Record<string, { name: string; description: string; color: 
 };
 
 export default async function PaymentProviderList() {
-  const configs = await getPaymentConfigs();
+  const { configs, error } = await getPaymentConfigs();
+  const enabledCount = configs.filter((c) => c.enabled).length;
+  const sandboxCount = configs.filter((c) => c.sandboxMode).length;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="space-y-5">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-xl font-semibold">Payment Providers</h2>
           <p className="text-sm text-muted-foreground">
-            {configs.filter((c) => c.enabled).length} of {configs.length} providers enabled
+            {enabledCount} of {configs.length} providers enabled
           </p>
         </div>
       </div>
 
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <Card>
+          <CardContent className="pt-4">
+            <p className="text-xs text-muted-foreground">Total Providers</p>
+            <p className="text-2xl font-semibold">{configs.length}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <p className="text-xs text-muted-foreground">Enabled</p>
+            <p className="text-2xl font-semibold">{enabledCount}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <p className="text-xs text-muted-foreground">Sandbox Mode</p>
+            <p className="text-2xl font-semibold">{sandboxCount}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {error && (
+        <Card className="border-red-200">
+          <CardContent className="pt-4">
+            <p className="text-sm text-red-600">{error}</p>
+          </CardContent>
+        </Card>
+      )}
+
       {configs.length === 0 ? (
         <Card>
           <CardContent className="flex items-center justify-center h-32">
-            <p className="text-muted-foreground">No payment providers configured</p>
+            <p className="text-muted-foreground">
+              {error ? "Unable to display providers." : "No payment providers configured"}
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -109,7 +146,7 @@ export default async function PaymentProviderList() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <PaymentProviderCard config={config} providerInfo={info} />
+                    <PaymentProviderCard config={config} />
                   </CardContent>
                 </Card>
               );

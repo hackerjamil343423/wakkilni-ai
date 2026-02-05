@@ -6,6 +6,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
@@ -13,12 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Settings, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import PaymentProviderForm from "./payment-provider-form";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
 
 interface PaymentConfigData {
   id: string;
@@ -34,18 +30,12 @@ interface PaymentConfigData {
   lastTestedAt?: Date | null;
 }
 
-interface ProviderInfo {
-  name: string;
-  description: string;
-  color: string;
-}
-
 interface Props {
   config: PaymentConfigData;
-  providerInfo: ProviderInfo;
 }
 
 export default function PaymentProviderCard({ config }: Props) {
+  const router = useRouter();
   const [enabled, setEnabled] = useState(config.enabled);
   const [sandboxMode, setSandboxMode] = useState(config.sandboxMode);
   const [isPending, startTransition] = useTransition();
@@ -70,9 +60,13 @@ export default function PaymentProviderCard({ config }: Props) {
 
         if (response.ok) {
           setEnabled(checked);
+          toast.success(`Provider ${checked ? "enabled" : "disabled"}.`);
+          router.refresh();
+        } else {
+          toast.error("Failed to update provider status.");
         }
       } catch {
-        console.error("Failed to toggle provider");
+        toast.error("Failed to update provider status.");
       }
     });
   };
@@ -91,9 +85,13 @@ export default function PaymentProviderCard({ config }: Props) {
 
         if (response.ok) {
           setSandboxMode(checked);
+          toast.success(`Sandbox mode ${checked ? "enabled" : "disabled"}.`);
+          router.refresh();
+        } else {
+          toast.error("Failed to update sandbox mode.");
         }
       } catch {
-        console.error("Failed to toggle sandbox");
+        toast.error("Failed to update sandbox mode.");
       }
     });
   };
@@ -112,11 +110,18 @@ export default function PaymentProviderCard({ config }: Props) {
 
       const data = await response.json();
       setTestResult(data.result);
+      if (data.result?.success) {
+        toast.success("Connection test passed.");
+      } else {
+        toast.error(data.result?.message || "Connection test failed.");
+      }
+      router.refresh();
     } catch {
       setTestResult({
         success: false,
         message: "Connection test failed",
       });
+      toast.error("Connection test failed.");
     } finally {
       setTesting(false);
     }
@@ -182,12 +187,12 @@ export default function PaymentProviderCard({ config }: Props) {
             </Alert>
           )}
 
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <Button
               variant="outline"
               size="sm"
               onClick={handleTestConnection}
-              disabled={testing || !enabled}
+              disabled={testing || !enabled || isPending}
             >
               {testing ? (
                 <>
@@ -199,20 +204,10 @@ export default function PaymentProviderCard({ config }: Props) {
               )}
             </Button>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Settings className="mr-2 h-4 w-4" />
-                  Configure
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setShowSettings(true)}>
-                  <Settings className="mr-2 h-4 w-4" />
-                  Full Settings
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button variant="outline" size="sm" onClick={() => setShowSettings(true)} disabled={isPending}>
+              <Settings className="mr-2 h-4 w-4" />
+              Configure
+            </Button>
           </div>
 
           {config.lastTestStatus && (
