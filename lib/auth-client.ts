@@ -3,8 +3,8 @@ import { organizationClient } from "better-auth/client/plugins";
 import { polarClient } from "@polar-sh/better-auth";
 
 export const authClient = createAuthClient({
-  // Keep this optional; if unset, Better Auth client uses same-origin.
-  baseURL: process.env.BETTER_AUTH_BASE_URL,
+  // Prefer dedicated auth URL, fallback to public app URL.
+  baseURL: process.env.BETTER_AUTH_BASE_URL || process.env.NEXT_PUBLIC_APP_URL,
   plugins: [organizationClient(), polarClient()],
 });
 

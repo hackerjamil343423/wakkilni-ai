@@ -36,8 +36,8 @@ const allowedOrigins = [
 ].filter((value): value is string => Boolean(value));
 
 export const auth = betterAuth({
-  // Set only when explicitly configured to avoid stale URL lock-in.
-  baseURL: configuredAuthUrl,
+  // Use explicit auth URL when provided, otherwise fallback to app URL.
+  baseURL: configuredAuthUrl || configuredAppUrl,
   trustedOrigins: allowedOrigins,
   allowedDevOrigins: allowedOrigins,
   cookieCache: {
