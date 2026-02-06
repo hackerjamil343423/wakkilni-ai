@@ -24,11 +24,20 @@ const polarClient = new Polar({
   server: (process.env.POLAR_SERVER || "sandbox") as "sandbox" | "production",
 });
 
-const appUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
-const allowedOrigins = appUrl ? [appUrl] : [];
+const configuredAppUrl = process.env.NEXT_PUBLIC_APP_URL?.trim();
+const configuredAuthUrl = process.env.BETTER_AUTH_BASE_URL?.trim();
+
+const allowedOrigins = [
+  configuredAppUrl,
+  configuredAuthUrl,
+  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
+  process.env.NODE_ENV !== "production" ? "http://localhost:3000" : undefined,
+  process.env.NODE_ENV !== "production" ? "http://127.0.0.1:3000" : undefined,
+].filter((value): value is string => Boolean(value));
 
 export const auth = betterAuth({
-  baseURL: process.env.BETTER_AUTH_BASE_URL || appUrl,
+  // Set only when explicitly configured to avoid stale URL lock-in.
+  baseURL: configuredAuthUrl,
   trustedOrigins: allowedOrigins,
   allowedDevOrigins: allowedOrigins,
   cookieCache: {
