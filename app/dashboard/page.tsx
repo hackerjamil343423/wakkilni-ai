@@ -1,18 +1,7 @@
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
-import { redirect } from "next/navigation";
 import { SectionCards } from "./_components/section-cards";
 import { ChartAreaInteractive } from "./_components/chart-interactive";
 
 export default async function Dashboard() {
-  const result = await auth.api.getSession({
-    headers: await headers(), // you need to pass the headers object.
-  });
-
-  if (!result?.session?.userId) {
-    redirect("/sign-in");
-  }
-
   return (
     <section className="flex flex-col items-start justify-start p-6 w-full">
       <div className="w-full">

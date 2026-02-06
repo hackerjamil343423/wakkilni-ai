@@ -83,12 +83,10 @@ function SettingsContent() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
 
-  const { data: organizations } = authClient.useListOrganizations();
-
   // Handle URL tab parameter
   useEffect(() => {
     const tab = searchParams.get("tab");
-    if (tab && ["profile", "organization", "billing", "team", "connect-platform"].includes(tab)) {
+    if (tab && ["profile", "billing", "team", "connect-platform"].includes(tab)) {
       setCurrentTab(tab);
     }
   }, [searchParams]);
@@ -130,7 +128,7 @@ function SettingsContent() {
     };
 
     fetchData();
-  }, [organizations]);
+  }, []);
 
   const handleTabChange = (value: string) => {
     setCurrentTab(value);
