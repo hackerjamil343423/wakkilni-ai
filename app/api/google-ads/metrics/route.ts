@@ -72,10 +72,32 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching metrics:", error);
 
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
     if (errorMessage.includes("do not have access")) {
       return NextResponse.json(
         { error: "Forbidden", message: errorMessage },
         { status: 403 }
+      );
+    }
+
+    if (errorMessage.includes("Missing Google Ads credentials")) {
+      return NextResponse.json(
+        { error: "Configuration error", message: "Google Ads API credentials are not configured. Please set GOOGLE_ADS_CLIENT_ID, GOOGLE_ADS_CLIENT_SECRET, and GOOGLE_ADS_DEVELOPER_TOKEN." },
+        { status: 503 }
+      );
+    }
+
+    if (errorMessage.includes("No Google Ads account found") || errorMessage.includes("No Google Ads tokens")) {
+      return NextResponse.json(
+        { error: "Account not connected", message: "Please reconnect your Google Ads account." },
+        { status: 404 }
+      );
+    }
+
+    if (errorMessage.includes("invalid_grant") || errorMessage.includes("UNAUTHENTICATED") || errorMessage.includes("Token has been expired or revoked") || errorMessage.includes("refresh")) {
+      return NextResponse.json(
+        { error: "Token expired", message: "Your Google Ads authorization has expired. Please disconnect and reconnect your Google Ads account." },
+        { status: 401 }
       );
     }
 

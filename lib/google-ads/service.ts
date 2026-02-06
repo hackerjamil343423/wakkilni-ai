@@ -93,11 +93,17 @@ export class GoogleAdsService {
    */
   private async createCustomer(customerId: string) {
     const { refreshToken, loginCustomerId } = await this.getAccountDetails(customerId);
-    return this.client.Customer({
-      customer_id: customerId,
-      login_customer_id: loginCustomerId,
-      refresh_token: refreshToken,
-    });
+    try {
+      return this.client.Customer({
+        customer_id: customerId,
+        login_customer_id: loginCustomerId,
+        refresh_token: refreshToken,
+      });
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      console.error("Failed to create Google Ads customer client:", { customerId, loginCustomerId, error: msg });
+      throw new Error(`Failed to initialize Google Ads client for customer ${customerId}: ${msg}`);
+    }
   }
 
   /**
