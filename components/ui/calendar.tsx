@@ -82,12 +82,12 @@ function Calendar({
           defaultClassNames.caption_label
         ),
         table: "w-full border-collapse",
-        weekdays: cn("flex", defaultClassNames.weekdays),
+        weekdays: cn("flex justify-between w-full", defaultClassNames.weekdays),
         weekday: cn(
-          "text-zinc-600 dark:text-zinc-400 flex-1 select-none rounded-md text-[0.75rem] font-semibold uppercase",
+          "text-zinc-500 dark:text-zinc-400 w-9 h-9 flex items-center justify-center select-none text-[0.7rem] font-medium uppercase tracking-wider",
           defaultClassNames.weekday
         ),
-        week: cn("mt-2 flex w-full", defaultClassNames.week),
+        week: cn("mt-1 flex w-full justify-between", defaultClassNames.week),
         week_number_header: cn(
           "w-[--cell-size] select-none",
           defaultClassNames.week_number_header
@@ -97,7 +97,7 @@ function Calendar({
           defaultClassNames.week_number
         ),
         day: cn(
-          "relative w-full h-full p-0 text-center [&:last-child[data-selected=true]_button]:rounded-r-md group/day aspect-square select-none",
+          "relative w-9 h-9 p-0 text-center [&:last-child[data-selected=true]_button]:rounded-r-md group/day aspect-square select-none flex items-center justify-center",
           props.showWeekNumber
             ? "[&:nth-child(2)[data-selected=true]_button]:rounded-l-md"
             : "[&:first-child[data-selected=true]_button]:rounded-l-md",
